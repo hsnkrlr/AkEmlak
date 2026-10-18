@@ -1,4 +1,4 @@
-import type { Listing } from '../types';
+import { CATEGORY_GROUP, CATEGORY_LABEL, type CategoryGroup, type Listing } from '../types';
 
 const TR_MAP: Record<string, string> = {
   ç: 'c', ğ: 'g', ı: 'i', i: 'i', ö: 'o', ş: 's', ü: 'u', â: 'a', î: 'i', û: 'u',
@@ -60,3 +60,32 @@ export function imageUrl(name: string, thumb = false): string {
 export function thumbName(name: string): string {
   return name.replace(/\.(\w+)$/, '.t.$1');
 }
+
+/** "Diğer" kategorisinde yöneticinin yazdığı adı gösterir. */
+export function categoryLabel(l: Pick<Listing, 'category' | 'categoryOther'>): string {
+  return l.category === 'diger' && l.categoryOther ? l.categoryOther : CATEGORY_LABEL[l.category];
+}
+
+export function groupOf(l: Pick<Listing, 'category'>): CategoryGroup {
+  return CATEGORY_GROUP[l.category];
+}
+
+export const fmtInt = (n: number) => new Intl.NumberFormat('tr-TR').format(n);
+
+/** Kart ve WhatsApp mesajında gösterilen kısa özellikler (kategoriye göre). */
+export function summaryFacts(l: Listing): string[] {
+  const area = l.netM2 ?? l.grossM2;
+  switch (groupOf(l)) {
+    case 'vasita':
+      return [l.modelYear ? String(l.modelYear) : '', l.km !== null ? `${fmtInt(l.km)} km` : '', l.fuel, l.gear].filter(Boolean).slice(0, 3);
+    case 'konut':
+      return [l.rooms, area ? `${fmtInt(area)} m²` : '', l.floor].filter(Boolean);
+    case 'isyeri':
+      return [area ? `${fmtInt(area)} m²` : '', l.floor].filter(Boolean);
+    case 'arsa':
+      return [l.grossM2 ? `${fmtInt(l.grossM2)} m²` : ''].filter(Boolean);
+    default:
+      return [area ? `${fmtInt(area)} m²` : ''].filter(Boolean);
+  }
+}
+

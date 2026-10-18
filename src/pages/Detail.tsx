@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { SITE } from '../config';
 import { publicListings, usePublished } from '../data/published';
-import { formatDate, formatLocation, formatPrice, soldLabel } from '../lib/format';
+import { categoryLabel, fmtInt, formatDate, formatLocation, formatPrice, groupOf, soldLabel } from '../lib/format';
 import { usePageMeta } from '../lib/usePageMeta';
 import { listingUrl, listingWhatsappLink } from '../lib/whatsapp';
 import { Gallery } from '../components/Gallery';
 import { IconBack, IconLink, IconPin, IconWhatsapp } from '../components/Icons';
 import { PublicLayout, TrustNotice } from '../components/Layout';
 import { ListingCard } from '../components/ListingCard';
-import { CATEGORY_LABEL, DEAL_LABEL, type Listing } from '../types';
+import { DEAL_LABEL, type Listing } from '../types';
 
 export default function Detail() {
   const { slug } = useParams();
@@ -19,7 +19,7 @@ export default function Detail() {
 
   usePageMeta(
     listing ? `${listing.title} | ${SITE.name}` : SITE.name,
-    listing ? `${DEAL_LABEL[listing.dealType]} ${CATEGORY_LABEL[listing.category]} – ${formatLocation(listing)} – ${formatPrice(listing)}` : undefined,
+    listing ? `${DEAL_LABEL[listing.dealType]} ${categoryLabel(listing)} – ${formatLocation(listing)} – ${formatPrice(listing)}` : undefined,
   );
 
   if (state.status === 'loading') {
@@ -49,7 +49,7 @@ export default function Detail() {
   }
 
   const similar = all
-    .filter((l) => l.id !== listing.id && l.status === 'yayinda' && (l.category === listing.category || l.dealType === listing.dealType))
+    .filter((l) => l.id !== listing.id && l.status === 'yayinda' && groupOf(l) === groupOf(listing))
     .slice(0, 3);
 
   return (
@@ -81,6 +81,7 @@ function Fact({ label, value }: { label: string; value: string | number | null |
 
 export function DetailView({ listing: l, backTo = '/', backLabel = 'Tüm ilanlar' }: { listing: Listing; backTo?: string; backLabel?: string }) {
   const sold = l.status === 'satildi';
+  const group = groupOf(l);
   const [copied, setCopied] = useState(false);
   const wa = listingWhatsappLink(l);
 
@@ -109,14 +110,28 @@ export function DetailView({ listing: l, backTo = '/', backLabel = 'Tüm ilanlar
             <dl className="facts">
               <Fact label="İlan No" value={l.code} />
               <Fact label="İlan Türü" value={DEAL_LABEL[l.dealType]} />
-              <Fact label="Emlak Tipi" value={CATEGORY_LABEL[l.category]} />
-              <Fact label="Brüt m²" value={l.grossM2} />
-              <Fact label="Net m²" value={l.netM2} />
-              <Fact label="Oda Sayısı" value={l.rooms} />
-              <Fact label="Banyo" value={l.bathrooms} />
-              <Fact label="Bulunduğu Kat" value={l.floor} />
-              <Fact label="Bina Yaşı" value={l.buildingAge === null ? null : l.buildingAge === 0 ? 'Sıfır bina' : `${l.buildingAge} yıl`} />
-              <Fact label="Isıtma" value={l.heating} />
+              <Fact label="Kategori" value={categoryLabel(l)} />
+              {group === 'vasita' ? (
+                <>
+                  <Fact label="Marka" value={l.brand} />
+                  <Fact label="Model" value={l.model} />
+                  <Fact label="Model Yılı" value={l.modelYear} />
+                  <Fact label="Kilometre" value={l.km === null ? null : `${fmtInt(l.km)} km`} />
+                  <Fact label="Yakıt" value={l.fuel} />
+                  <Fact label="Vites" value={l.gear} />
+                  <Fact label="Renk" value={l.color} />
+                </>
+              ) : (
+                <>
+                  <Fact label={group === 'arsa' ? 'Alan (m²)' : 'Brüt m²'} value={l.grossM2 === null ? null : fmtInt(l.grossM2)} />
+                  <Fact label="Net m²" value={l.netM2 === null ? null : fmtInt(l.netM2)} />
+                  <Fact label="Oda Sayısı" value={l.rooms} />
+                  <Fact label="Banyo" value={l.bathrooms} />
+                  <Fact label="Bulunduğu Kat" value={l.floor} />
+                  <Fact label="Bina Yaşı" value={l.buildingAge === null ? null : l.buildingAge === 0 ? 'Sıfır bina' : `${l.buildingAge} yıl`} />
+                  <Fact label="Isıtma" value={l.heating} />
+                </>
+              )}
               <Fact label="İlan Tarihi" value={formatDate(l.createdAt)} />
             </dl>
           </section>
@@ -148,7 +163,7 @@ export function DetailView({ listing: l, backTo = '/', backLabel = 'Tüm ilanlar
           <div className="panel sticky">
             <div className="side-badges">
               <span className={`badge badge-${l.dealType}`}>{DEAL_LABEL[l.dealType]}</span>
-              <span className="badge badge-soft">{CATEGORY_LABEL[l.category]}</span>
+              <span className="badge badge-soft">{categoryLabel(l)}</span>
               {sold && <span className="badge badge-sold">{soldLabel(l)}</span>}
             </div>
             <h1 className="detail-title">{l.title}</h1>

@@ -1,6 +1,6 @@
 import { SITE, siteOrigin } from '../config';
-import { CATEGORY_LABEL, DEAL_LABEL, type Listing } from '../types';
-import { formatLocation, formatPrice } from './format';
+import { DEAL_LABEL, type Listing } from '../types';
+import { categoryLabel, formatLocation, formatPrice, groupOf, summaryFacts } from './format';
 
 function waLink(text: string): string {
   return `https://wa.me/${SITE.whatsappNumber}?text=${encodeURIComponent(text)}`;
@@ -12,19 +12,17 @@ export function listingUrl(l: Pick<Listing, 'slug'>): string {
 
 /** İlan özeti + bağlantısıyla hazır WhatsApp mesajı. */
 export function listingWhatsappLink(l: Listing): string {
-  const facts = [
-    l.netM2 ? `${l.netM2} m² net` : l.grossM2 ? `${l.grossM2} m²` : '',
-    l.rooms,
-    l.floor,
-  ].filter(Boolean);
+  const facts = summaryFacts(l);
+  const icon = { konut: '🏠', arsa: '🌳', isyeri: '🏢', vasita: '🚗', diger: '📦' }[groupOf(l)];
+  const name = [l.brand, l.model].filter(Boolean).join(' ');
   const lines = [
     `Merhaba ${SITE.name}, bu ilanla ilgileniyorum:`,
     '',
-    `🏠 ${l.title}`,
-    `📌 ${DEAL_LABEL[l.dealType]} ${CATEGORY_LABEL[l.category]}`,
+    `${icon} ${l.title}`,
+    `📌 ${DEAL_LABEL[l.dealType]} ${categoryLabel(l)}${name ? ` – ${name}` : ''}`,
     `📍 ${formatLocation(l)}`,
     `💰 ${formatPrice(l)}`,
-    facts.length ? `📐 ${facts.join(' · ')}` : '',
+    facts.length ? `📋 ${facts.join(' · ')}` : '',
     `🔖 İlan No: ${l.code}`,
     '',
     listingUrl(l),

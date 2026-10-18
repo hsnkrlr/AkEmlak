@@ -1,12 +1,11 @@
 import { Link } from 'react-router-dom';
-import { formatLocation, formatPrice, soldLabel } from '../lib/format';
-import { CATEGORY_LABEL, DEAL_LABEL, type Listing } from '../types';
-import { IconArea, IconCamera, IconPin, IconRooms } from './Icons';
+import { categoryLabel, formatLocation, formatPrice, soldLabel, summaryFacts } from '../lib/format';
+import { DEAL_LABEL, type Listing } from '../types';
+import { IconCamera, IconPin } from './Icons';
 import { Photo } from './Photo';
 
 export function ListingCard({ listing: l, to }: { listing: Listing; to?: string }) {
   const sold = l.status === 'satildi';
-  const area = l.netM2 ?? l.grossM2;
   return (
     <Link to={to ?? `/detay/${l.slug}`} className={`card ${sold ? 'is-sold' : ''}`}>
       <div className="card-media">
@@ -29,17 +28,10 @@ export function ListingCard({ listing: l, to }: { listing: Listing; to?: string 
           <IconPin width={16} height={16} /> {formatLocation(l)}
         </p>
         <ul className="card-facts">
-          <li>{CATEGORY_LABEL[l.category]}</li>
-          {l.rooms && (
-            <li>
-              <IconRooms width={15} height={15} /> {l.rooms}
-            </li>
-          )}
-          {area && (
-            <li>
-              <IconArea width={15} height={15} /> {area} m²
-            </li>
-          )}
+          <li className="card-cat">{categoryLabel(l)}</li>
+          {summaryFacts(l).map((f) => (
+            <li key={f}>{f}</li>
+          ))}
         </ul>
       </div>
     </Link>

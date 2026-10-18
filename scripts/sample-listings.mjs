@@ -79,5 +79,40 @@ export function sampleListings() {
         'Ana yola cepheli, konut imarlı, müstakil tapulu 620 m² arsa. Altyapısı hazırdır, yatırım için idealdir.',
       featured: false,
     },
+    sampleVehicle(base),
   ];
+}
+
+export function sampleVehicle(base = {}) {
+  return {
+    ...base,
+    id: 'ornek-4',
+    code: 'AK-10004',
+    slug: '2019-renault-clio-1-0-tce-joy-hatasiz',
+    title: '2019 Renault Clio 1.0 TCe Joy Hatasız',
+    dealType: 'satilik',
+    category: 'otomobil',
+    price: 785000,
+    district: 'Şehitkamil',
+    neighborhood: '',
+    grossM2: null,
+    netM2: null,
+    rooms: '',
+    bathrooms: null,
+    floor: '',
+    buildingAge: null,
+    heating: '',
+    brand: 'Renault',
+    model: 'Clio 1.0 TCe Joy',
+    modelYear: 2019,
+    km: 84500,
+    fuel: 'Benzin',
+    gear: 'Manuel',
+    color: 'Beyaz',
+    categoryOther: '',
+    features: ['Hasar Kayıtsız', 'Boyasız', 'Servis Bakımlı', 'İlk Sahibinden', 'Takasa Uygun'],
+    description:
+      'İlk sahibinden, tüm bakımları yetkili serviste yapılmış, hasar kaydı olmayan temiz araç.\n\nMuayenesi yenidir, lastikleri iyi durumdadır. Ekspertize açıktır.',
+    featured: false,
+  };
 }

@@ -1636,3 +1636,45 @@ textarea {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------- Kategori grupları ve "Diğer" seçimli alanlar ---------- */
+.group-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: -6px 0 22px;
+}
+.group-chips button {
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgb(255 255 255 / 0.8);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.group-chips button.on {
+  background: var(--grad-primary);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 12px rgb(15 118 110 / 0.25);
+}
+.card-facts .card-cat {
+  color: var(--primary-ink);
+  font-weight: 700;
+}
+.choice-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.field > select + input {
+  margin-top: 8px;
+}
+.form-grid + .field,
+.form-grid + p + .field {
+  margin-top: 18px;
+}

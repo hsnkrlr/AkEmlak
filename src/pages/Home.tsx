@@ -7,19 +7,23 @@ import { usePageMeta } from '../lib/usePageMeta';
 import { IconChat, IconSearch, IconShield, IconSpark, IconWhatsapp } from '../components/Icons';
 import { ListingCard } from '../components/ListingCard';
 import { PublicLayout, TrustNotice } from '../components/Layout';
-import { CATEGORY_LABEL, type Category, type DealType, type Listing } from '../types';
+import { categoryLabel, groupOf } from '../lib/format';
+import { CATEGORY_GROUP, CATEGORY_LABEL, GROUP_LABEL, type Category, type CategoryGroup, type DealType, type Listing } from '../types';
 
 type Sort = 'yeni' | 'artan' | 'azalan';
 
 const norm = (s: string) => s.toLocaleLowerCase('tr-TR');
 
-function filterListings(list: Listing[], q: string, deal: DealType | '', cat: Category | '', sort: Sort): Listing[] {
+function filterListings(list: Listing[], q: string, deal: DealType | '', group: CategoryGroup | '', cat: Category | '', sort: Sort): Listing[] {
   const terms = norm(q).split(/\s+/).filter(Boolean);
   const out = list.filter((l) => {
     if (deal && l.dealType !== deal) return false;
+    if (group && groupOf(l) !== group) return false;
     if (cat && l.category !== cat) return false;
     if (!terms.length) return true;
-    const hay = norm([l.title, l.city, l.district, l.neighborhood, l.rooms, l.code, CATEGORY_LABEL[l.category]].join(' '));
+    const hay = norm(
+      [l.title, l.city, l.district, l.neighborhood, l.rooms, l.code, categoryLabel(l), CATEGORY_LABEL[l.category], l.brand, l.model, l.modelYear ?? ''].join(' '),
+    );
     return terms.every((t) => hay.includes(t));
   });
   const rank = (l: Listing) => (l.status === 'satildi' ? 2 : l.featured ? 0 : 1);
@@ -32,14 +36,18 @@ function filterListings(list: Listing[], q: string, deal: DealType | '', cat: Ca
 }
 
 export default function Home() {
-  usePageMeta(`${SITE.name} | Satılık ve Kiralık Emlak İlanları`, `${SITE.name} güncel satılık ve kiralık daire, villa, arsa ve iş yeri ilanları. WhatsApp ile hemen bilgi alın.`);
+  usePageMeta(
+    `${SITE.name} | Satılık ve Kiralık Emlak ve Araç İlanları`,
+    `${SITE.name} güncel satılık ve kiralık daire, villa, arsa, iş yeri ve araç ilanları. WhatsApp ile hemen bilgi alın.`,
+  );
   const state = usePublished();
   const all = useMemo(() => publicListings(state), [state]);
   const [q, setQ] = useState('');
   const [deal, setDeal] = useState<DealType | ''>('');
+  const [group, setGroup] = useState<CategoryGroup | ''>('');
   const [cat, setCat] = useState<Category | ''>('');
   const [sort, setSort] = useState<Sort>('yeni');
-  const shown = useMemo(() => filterListings(all, q, deal, cat, sort), [all, q, deal, cat, sort]);
+  const shown = useMemo(() => filterListings(all, q, deal, group, cat, sort), [all, q, deal, group, cat, sort]);
   const active = all.filter((l) => l.status === 'yayinda').length;
   const location = useLocation();
 
@@ -49,18 +57,22 @@ export default function Home() {
     }
   }, [location.hash, state.status]);
 
-  const categories = useMemo(() => Array.from(new Set(all.map((l) => l.category))), [all]);
+  const groups = useMemo(() => (Object.keys(GROUP_LABEL) as CategoryGroup[]).filter((g) => all.some((l) => groupOf(l) === g)), [all]);
+  const categories = useMemo(
+    () => (Object.keys(CATEGORY_LABEL) as Category[]).filter((c) => (!group || CATEGORY_GROUP[c] === group) && all.some((l) => l.category === c)),
+    [all, group],
+  );
 
   return (
     <PublicLayout>
       <section className="hero">
         <div className="container hero-inner">
-          <p className="eyebrow">{SITE.city} ve çevresinde güvenilir emlak</p>
+          <p className="eyebrow">{SITE.city} ve çevresinde güvenilir alım satım</p>
           <h1>
-            Hayalinizdeki eve <span className="grad-text">güvenle</span> ulaşın
+            Aradığınız ilana <span className="grad-text">güvenle</span> ulaşın
           </h1>
           <p className="hero-sub">
-            Özenle seçilmiş satılık ve kiralık ilanlar. Beğendiğiniz ilanı tek dokunuşla WhatsApp’tan sorun, size hemen
+            Ev, arsa, iş yeri, araç ve daha fazlası. Beğendiğiniz ilanı tek dokunuşla WhatsApp’tan sorun, size hemen
             dönüş yapalım.
           </p>
 
@@ -84,7 +96,7 @@ export default function Home() {
                 type="search"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Semt, ilçe, oda sayısı veya ilan no…"
+                placeholder="Semt, marka, model, oda sayısı veya ilan no…"
                 aria-label="İlan ara"
                 maxLength={80}
               />
@@ -119,7 +131,7 @@ export default function Home() {
           </div>
           <div className="filters">
             <select value={cat} onChange={(e) => setCat(e.target.value as Category | '')} aria-label="Kategori">
-              <option value="">Tüm kategoriler</option>
+              <option value="">{group ? `Tüm ${GROUP_LABEL[group]} ilanları` : 'Tüm kategoriler'}</option>
               {categories.map((c) => (
                 <option key={c} value={c}>
                   {CATEGORY_LABEL[c]}
@@ -133,6 +145,25 @@ export default function Home() {
             </select>
           </div>
         </div>
+
+        {groups.length > 1 && (
+          <div className="group-chips" role="group" aria-label="İlan grubu">
+            {(['', ...groups] as const).map((g) => (
+              <button
+                key={g || 'all'}
+                type="button"
+                className={group === g ? 'on' : ''}
+                aria-pressed={group === g}
+                onClick={() => {
+                  setGroup(g);
+                  setCat('');
+                }}
+              >
+                {g ? GROUP_LABEL[g] : 'Tümü'}
+              </button>
+            ))}
+          </div>
+        )}
 
         {state.status === 'loading' && (
           <div className="grid">

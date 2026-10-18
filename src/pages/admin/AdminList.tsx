@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { deleteDraft, ensureDraft, getMeta, listDrafts, saveDraft, type DraftMeta } from '../../data/draft';
-import { formatDateTime, formatPrice } from '../../lib/format';
+import { categoryLabel, formatDateTime, formatPrice } from '../../lib/format';
 import { getLoginLog, type LoginEvent } from '../../security/auth';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { Photo } from '../../components/Photo';
@@ -33,7 +33,7 @@ export default function AdminList() {
     const t = q.toLocaleLowerCase('tr-TR').trim();
     if (!items) return [];
     if (!t) return items;
-    return items.filter((l) => [l.title, l.code, l.district, l.neighborhood].join(' ').toLocaleLowerCase('tr-TR').includes(t));
+    return items.filter((l) => [l.title, l.code, l.district, l.neighborhood, l.brand, l.model, categoryLabel(l)].join(' ').toLocaleLowerCase('tr-TR').includes(t));
   }, [items, q]);
 
   const setStatus = async (l: Listing, status: ListingStatus) => {
@@ -115,7 +115,7 @@ export default function AdminList() {
                   <Link to={`/admin/duzenle/${l.id}`}>{l.title}</Link>
                 </div>
                 <div className="small muted">
-                  {l.code} · {DEAL_LABEL[l.dealType]} · {formatPrice(l)} · {l.images.length}/10 foto
+                  {l.code} · {DEAL_LABEL[l.dealType]} {categoryLabel(l)} · {formatPrice(l)} · {l.images.length}/10 foto
                 </div>
                 <div className="small muted">Son güncelleme: {formatDateTime(l.updatedAt)}</div>
               </div>

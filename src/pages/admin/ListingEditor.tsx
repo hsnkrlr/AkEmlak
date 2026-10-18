@@ -5,17 +5,50 @@ import { ensureDraft, getDraft, nextCode, saveDraft, storeImage, uniqueSlug } fr
 import { randomId } from '../../lib/crypto';
 import { slugify } from '../../lib/format';
 import { processImage } from '../../lib/images';
+import { ChoiceField } from '../../components/ChoiceField';
 import { Photo } from '../../components/Photo';
-import { CATEGORY_LABEL, CURRENCY_LABEL, DEAL_LABEL, STATUS_LABEL, type Category, type Currency, type DealType, type Listing, type ListingStatus } from '../../types';
+import {
+  CATEGORY_GROUP, CATEGORY_LABEL, CURRENCY_LABEL, DEAL_LABEL, GROUP_LABEL, STATUS_LABEL,
+  type Category, type CategoryGroup, type Currency, type DealType, type Listing, type ListingStatus,
+} from '../../types';
 import { useAdmin } from './session';
 
-const FEATURE_SUGGESTIONS = [
-  'Asansör', 'Otopark', 'Kapalı Otopark', 'Balkon', 'Teras', 'Bahçe', 'Havuz', 'Site İçerisinde', 'Güvenlik',
-  'Eşyalı', 'Ankastre Mutfak', 'Ebeveyn Banyosu', 'Doğalgaz', 'Klima', 'Jeneratör', 'Çocuk Parkı',
-  'Krediye Uygun', 'Tapulu', 'Takasa Uygun', 'Toplu Taşımaya Yakın', 'Okula Yakın', 'Deniz Manzarası',
-];
+const FEATURE_SUGGESTIONS: Record<CategoryGroup, string[]> = {
+  konut: [
+    'Asansör', 'Otopark', 'Kapalı Otopark', 'Balkon', 'Teras', 'Bahçe', 'Havuz', 'Site İçerisinde', 'Güvenlik',
+    'Eşyalı', 'Ankastre Mutfak', 'Ebeveyn Banyosu', 'Doğalgaz', 'Klima', 'Jeneratör', 'Çocuk Parkı',
+    'Krediye Uygun', 'Tapulu', 'Takasa Uygun', 'Toplu Taşımaya Yakın', 'Okula Yakın', 'Deniz Manzarası',
+  ],
+  arsa: ['Konut İmarlı', 'Ticari İmarlı', 'Yola Cephe', 'Köşe Parsel', 'Elektrik', 'Su', 'Kuyu', 'Müstakil Tapulu', 'Hisseli Tapu', 'Zeytinlik', 'Fıstıklık', 'Bağ', 'Takasa Uygun'],
+  isyeri: ['Cadde Üzeri', 'Köşe Konum', 'Vitrinli', 'Asma Kat', 'Otopark', 'Asansör', 'Jeneratör', 'Yükleme Rampası', 'Tır Girişi', 'Devren', 'Kiracılı', 'Krediye Uygun'],
+  vasita: [
+    'Hasar Kayıtsız', 'Boyasız', 'Değişensiz', 'Garantili', 'İlk Sahibinden', 'Servis Bakımlı', 'Muayenesi Yeni',
+    'Takasa Uygun', 'Krediye Uygun', 'Sunroof', 'Geri Görüş Kamerası', 'Navigasyon', 'Deri Koltuk', 'Hız Sabitleyici',
+  ],
+  diger: ['Sıfır', 'Az Kullanılmış', 'Garantili', 'Faturalı', 'Takasa Uygun', 'Krediye Uygun', 'Pazarlık Payı Var'],
+};
 const HEATING = ['Kombi (Doğalgaz)', 'Merkezi Sistem', 'Yerden Isıtma', 'Klima', 'Soba', 'Yok'];
-const ROOMS = ['1+0', '1+1', '2+1', '3+1', '3+2', '4+1', '4+2', '5+1', '6+ Oda'];
+const ROOMS = ['1+0', '1+1', '2+1', '3+1', '3+2', '4+1', '4+2', '5+1', '6+1'];
+const FLOORS = [
+  'Bodrum Kat', 'Zemin Kat', 'Bahçe Katı', 'Yüksek Giriş', '1. Kat', '2. Kat', '3. Kat', '4. Kat', '5. Kat',
+  '6. Kat', '7. Kat', '8. Kat', '9. Kat', '10. Kat ve üzeri', 'Çatı Katı', 'Villa Tipi (tüm katlar)',
+];
+const FUELS = ['Benzin', 'Dizel', 'LPG & Benzin', 'Hibrit', 'Elektrik'];
+const GEARS = ['Manuel', 'Otomatik', 'Yarı Otomatik'];
+const COLORS = ['Beyaz', 'Siyah', 'Gri', 'Gümüş', 'Kırmızı', 'Mavi', 'Lacivert', 'Yeşil', 'Kahverengi', 'Bej'];
+const GROUPS = Object.keys(GROUP_LABEL) as CategoryGroup[];
+
+/** Kategori grubuna göre formda gösterilen alanlar; diğer gruplara ait alanlar kayıtta temizlenir. */
+const GROUP_FIELDS: Record<CategoryGroup, (keyof Form)[]> = {
+  konut: ['grossM2', 'netM2', 'rooms', 'bathrooms', 'floor', 'buildingAge', 'heating'],
+  arsa: ['grossM2'],
+  isyeri: ['grossM2', 'netM2', 'bathrooms', 'floor', 'buildingAge', 'heating'],
+  vasita: ['brand', 'model', 'modelYear', 'km', 'fuel', 'gear', 'color'],
+  diger: ['grossM2'],
+};
+const OPTIONAL_FIELDS: (keyof Form)[] = [
+  'grossM2', 'netM2', 'rooms', 'bathrooms', 'floor', 'buildingAge', 'heating', 'brand', 'model', 'modelYear', 'km', 'fuel', 'gear', 'color',
+];
 
 interface Form {
   title: string;
@@ -36,6 +69,14 @@ interface Form {
   floor: string;
   buildingAge: string;
   heating: string;
+  brand: string;
+  model: string;
+  modelYear: string;
+  km: string;
+  fuel: string;
+  gear: string;
+  color: string;
+  categoryOther: string;
   features: string[];
   description: string;
   images: string[];
@@ -44,7 +85,8 @@ interface Form {
 const EMPTY: Form = {
   title: '', slug: '', dealType: 'satilik', category: 'daire', price: '', currency: 'TRY', status: 'yayinda', featured: false,
   city: '', district: '', neighborhood: '', grossM2: '', netM2: '', rooms: '', bathrooms: '', floor: '', buildingAge: '',
-  heating: '', features: [], description: '', images: [],
+  heating: '', brand: '', model: '', modelYear: '', km: '', fuel: '', gear: '', color: '', categoryOther: '',
+  features: [], description: '', images: [],
 };
 
 const numStr = (n: number | null) => (n === null ? '' : String(n));
@@ -61,6 +103,8 @@ function fromListing(l: Listing): Form {
     netM2: numStr(l.netM2),
     bathrooms: numStr(l.bathrooms),
     buildingAge: numStr(l.buildingAge),
+    modelYear: numStr(l.modelYear),
+    km: numStr(l.km),
   };
 }
 
@@ -149,6 +193,10 @@ export default function ListingEditor() {
     set('images', [x, ...imgs]);
   };
 
+  const group = CATEGORY_GROUP[form.category];
+  const isRent = form.dealType === 'kiralik';
+  const digits = (k: keyof Form) => (e: { target: { value: string } }) => set(k, e.target.value.replace(/[^\d]/g, '') as never);
+
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     const errs: string[] = [];
@@ -158,12 +206,18 @@ export default function ListingEditor() {
     const baseSlug = slugify(form.slug || form.title);
     if (!baseSlug) errs.push('Bağlantı adı oluşturulamadı; başlığa harf ekleyin.');
     if (!form.city.trim()) errs.push('İl bilgisi zorunludur.');
+    if (form.category === 'diger' && !form.categoryOther.trim()) errs.push('"Diğer" kategorisi için kategori adını yazın (örn. Tekne, Beyaz Eşya).');
+    const year = toNum(form.modelYear);
+    if (group === 'vasita' && year !== null && (year < 1950 || year > new Date().getFullYear() + 1)) errs.push('Model yılı geçersiz.');
     if (errs.length) {
       setErrors(errs);
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     setBusy(true);
+    // Seçilen kategoriye ait olmayan alanları temizle (örn. araçta oda sayısı kalmasın)
+    const f: Form = { ...form };
+    for (const k of OPTIONAL_FIELDS) if (!GROUP_FIELDS[group].includes(k)) (f[k] as string) = '';
     try {
       const listingId = original?.id ?? randomId(12);
       const now = new Date().toISOString();
@@ -171,26 +225,34 @@ export default function ListingEditor() {
         id: listingId,
         code: original?.code ?? (await nextCode()),
         slug: original && baseSlug === original.slug ? baseSlug : await uniqueSlug(baseSlug, listingId),
-        title: form.title,
-        dealType: form.dealType,
-        category: form.category,
+        title: f.title,
+        dealType: f.dealType,
+        category: f.category,
+        categoryOther: f.category === 'diger' ? f.categoryOther : '',
         price: price!,
-        currency: form.currency,
-        city: form.city,
-        district: form.district,
-        neighborhood: form.neighborhood,
-        grossM2: toNum(form.grossM2),
-        netM2: toNum(form.netM2),
-        rooms: form.rooms,
-        bathrooms: toNum(form.bathrooms),
-        floor: form.floor,
-        buildingAge: toNum(form.buildingAge),
-        heating: form.heating,
-        features: form.features,
-        description: form.description,
-        images: form.images,
-        status: form.status,
-        featured: form.featured,
+        currency: f.currency,
+        city: f.city,
+        district: f.district,
+        neighborhood: f.neighborhood,
+        grossM2: toNum(f.grossM2),
+        netM2: toNum(f.netM2),
+        rooms: f.rooms,
+        bathrooms: toNum(f.bathrooms),
+        floor: f.floor,
+        buildingAge: toNum(f.buildingAge),
+        heating: f.heating,
+        brand: f.brand,
+        model: f.model,
+        modelYear: toNum(f.modelYear),
+        km: toNum(f.km),
+        fuel: f.fuel,
+        gear: f.gear,
+        color: f.color,
+        features: f.features,
+        description: f.description,
+        images: f.images,
+        status: f.status,
+        featured: f.featured,
         createdAt: original?.createdAt ?? now,
         updatedAt: now,
       });
@@ -213,7 +275,6 @@ export default function ListingEditor() {
     );
   }
 
-  const isRent = form.dealType === 'kiralik';
 
   return (
     <form className="editor" onSubmit={submit} noValidate>
@@ -240,7 +301,7 @@ export default function ListingEditor() {
       <section className="panel">
         <h2>1. Temel Bilgiler</h2>
         <div className="form-grid">
-          <Field label="İlan başlığı *" wide hint="Örn: Merkezde 3+1 Asansörlü Geniş Daire">
+          <Field label="İlan başlığı *" wide hint={group === 'vasita' ? 'Örn: 2019 Renault Clio 1.0 Joy Hatasız' : 'Örn: Merkezde 3+1 Asansörlü Geniş Daire'}>
             <input value={form.title} onChange={(e) => onTitle(e.target.value)} maxLength={140} required />
           </Field>
           <Field label="İlan türü">
@@ -252,14 +313,31 @@ export default function ListingEditor() {
               ))}
             </div>
           </Field>
-          <Field label="Emlak tipi">
+          <Field label="Kategori" hint={form.category === 'diger' ? undefined : 'Listede yoksa en alttaki "Diğer" seçeneğini seçin.'}>
             <select value={form.category} onChange={(e) => set('category', e.target.value as Category)}>
-              {(Object.keys(CATEGORY_LABEL) as Category[]).map((c) => (
-                <option key={c} value={c}>
-                  {CATEGORY_LABEL[c]}
-                </option>
+              {GROUPS.filter((g) => g !== 'diger').map((g) => (
+                <optgroup key={g} label={GROUP_LABEL[g]}>
+                  {(Object.keys(CATEGORY_LABEL) as Category[])
+                    .filter((c) => CATEGORY_GROUP[c] === g)
+                    .map((c) => (
+                      <option key={c} value={c}>
+                        {CATEGORY_LABEL[c]}
+                      </option>
+                    ))}
+                </optgroup>
               ))}
+              <option value="diger">Diğer (listede yok)</option>
             </select>
+            {form.category === 'diger' && (
+              <input
+                value={form.categoryOther}
+                onChange={(e) => set('categoryOther', e.target.value)}
+                placeholder="Kategori adı (örn. Tekne, Beyaz Eşya, Karavan)"
+                maxLength={40}
+                aria-label="Diğer kategori adı"
+                autoFocus
+              />
+            )}
           </Field>
           <Field label={isRent ? 'Aylık kira *' : 'Fiyat *'}>
             <div className="input-group">
@@ -307,40 +385,66 @@ export default function ListingEditor() {
       </section>
 
       <section className="panel">
-        <h2>3. Özellikler</h2>
+        <h2>3. {group === 'vasita' ? 'Araç Bilgileri' : 'Özellikler'}</h2>
         <div className="form-grid three">
-          <Field label="Brüt m²">
-            <input inputMode="numeric" value={form.grossM2} onChange={(e) => set('grossM2', e.target.value.replace(/[^\d]/g, ''))} />
-          </Field>
-          <Field label="Net m²">
-            <input inputMode="numeric" value={form.netM2} onChange={(e) => set('netM2', e.target.value.replace(/[^\d]/g, ''))} />
-          </Field>
-          <Field label="Oda sayısı">
-            <input list="rooms" value={form.rooms} onChange={(e) => set('rooms', e.target.value)} maxLength={20} placeholder="3+1" />
-            <datalist id="rooms">
-              {ROOMS.map((r) => (
-                <option key={r} value={r} />
-              ))}
-            </datalist>
-          </Field>
-          <Field label="Banyo sayısı">
-            <input inputMode="numeric" value={form.bathrooms} onChange={(e) => set('bathrooms', e.target.value.replace(/[^\d]/g, ''))} />
-          </Field>
-          <Field label="Bulunduğu kat">
-            <input value={form.floor} onChange={(e) => set('floor', e.target.value)} maxLength={30} placeholder="Örn: 3. Kat, Bahçe Katı" />
-          </Field>
-          <Field label="Bina yaşı" hint="Sıfır bina için 0 yazın.">
-            <input inputMode="numeric" value={form.buildingAge} onChange={(e) => set('buildingAge', e.target.value.replace(/[^\d]/g, ''))} />
-          </Field>
-          <Field label="Isıtma">
-            <input list="heating" value={form.heating} onChange={(e) => set('heating', e.target.value)} maxLength={40} />
-            <datalist id="heating">
-              {HEATING.map((h) => (
-                <option key={h} value={h} />
-              ))}
-            </datalist>
-          </Field>
+          {group === 'vasita' && (
+            <>
+              <Field label="Marka">
+                <input value={form.brand} onChange={(e) => set('brand', e.target.value)} maxLength={40} placeholder="Örn: Renault" />
+              </Field>
+              <Field label="Model / Paket">
+                <input value={form.model} onChange={(e) => set('model', e.target.value)} maxLength={80} placeholder="Örn: Clio 1.0 TCe Joy" />
+              </Field>
+              <Field label="Model yılı">
+                <input inputMode="numeric" maxLength={4} value={form.modelYear} onChange={digits('modelYear')} placeholder="Örn: 2019" />
+              </Field>
+              <Field label="Kilometre">
+                <input inputMode="numeric" value={form.km} onChange={digits('km')} placeholder="Örn: 85000" />
+              </Field>
+              <Field label="Yakıt">
+                <ChoiceField value={form.fuel} options={FUELS} onChange={(v) => set('fuel', v)} ariaLabel="Yakıt" />
+              </Field>
+              <Field label="Vites">
+                <ChoiceField value={form.gear} options={GEARS} onChange={(v) => set('gear', v)} ariaLabel="Vites" />
+              </Field>
+              <Field label="Renk">
+                <ChoiceField value={form.color} options={COLORS} onChange={(v) => set('color', v)} ariaLabel="Renk" />
+              </Field>
+            </>
+          )}
+          {group !== 'vasita' && (
+            <Field label={group === 'konut' || group === 'isyeri' ? 'Brüt m²' : 'Alan (m²)'}>
+              <input inputMode="numeric" value={form.grossM2} onChange={digits('grossM2')} />
+            </Field>
+          )}
+          {(group === 'konut' || group === 'isyeri') && (
+            <Field label="Net m²">
+              <input inputMode="numeric" value={form.netM2} onChange={digits('netM2')} />
+            </Field>
+          )}
+          {group === 'konut' && (
+            <Field label="Oda sayısı">
+              <ChoiceField value={form.rooms} options={ROOMS} onChange={(v) => set('rooms', v)} placeholder="Örn: 7+2" maxLength={20} ariaLabel="Oda sayısı" />
+            </Field>
+          )}
+          {(group === 'konut' || group === 'isyeri') && (
+            <>
+              <Field label={group === 'isyeri' ? 'WC / Banyo sayısı' : 'Banyo sayısı'}>
+                <input inputMode="numeric" value={form.bathrooms} onChange={digits('bathrooms')} />
+              </Field>
+              <Field label="Bulunduğu kat">
+                <ChoiceField value={form.floor} options={FLOORS} onChange={(v) => set('floor', v)} placeholder="Örn: 14. Kat" maxLength={30} ariaLabel="Bulunduğu kat" />
+              </Field>
+              <Field label="Bina yaşı" hint="Sıfır bina için 0 yazın.">
+                <input inputMode="numeric" value={form.buildingAge} onChange={digits('buildingAge')} />
+              </Field>
+              <Field label="Isıtma">
+                <ChoiceField value={form.heating} options={HEATING} onChange={(v) => set('heating', v)} ariaLabel="Isıtma" />
+              </Field>
+            </>
+          )}
         </div>
+        {group === 'diger' && <p className="small muted">Ürünle ilgili diğer detayları aşağıdaki özelliklere ve açıklamaya yazabilirsiniz.</p>}
 
         <div className="field wide">
           <span>Öne çıkan özellikler</span>
@@ -375,7 +479,7 @@ export default function ListingEditor() {
             </ul>
           )}
           <div className="suggestions">
-            {FEATURE_SUGGESTIONS.filter((s) => !form.features.includes(s)).map((s) => (
+            {FEATURE_SUGGESTIONS[group].filter((s) => !form.features.includes(s)).map((s) => (
               <button key={s} type="button" onClick={() => addFeature(s)}>
                 + {s}
               </button>
@@ -391,7 +495,11 @@ export default function ListingEditor() {
           value={form.description}
           onChange={(e) => set('description', e.target.value)}
           maxLength={6000}
-          placeholder="Evin öne çıkan yönlerini, çevresini ve ulaşım imkânlarını anlatın. Paragraf için bir satır boş bırakın."
+          placeholder={
+            group === 'vasita'
+              ? 'Aracın bakım geçmişini, varsa değişen/boyalı parçaları ve öne çıkan donanımlarını anlatın. Paragraf için bir satır boş bırakın.'
+              : 'Öne çıkan yönlerini, çevresini ve ulaşım imkânlarını anlatın. Paragraf için bir satır boş bırakın.'
+          }
         />
         <small className="muted">{form.description.length} / 6000</small>
       </section>
