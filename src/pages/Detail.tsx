@@ -1,0 +1,184 @@
+import { useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { SITE } from '../config';
+import { publicListings, usePublished } from '../data/published';
+import { formatDate, formatLocation, formatPrice, soldLabel } from '../lib/format';
+import { usePageMeta } from '../lib/usePageMeta';
+import { listingUrl, listingWhatsappLink } from '../lib/whatsapp';
+import { Gallery } from '../components/Gallery';
+import { IconBack, IconLink, IconPin, IconWhatsapp } from '../components/Icons';
+import { PublicLayout, TrustNotice } from '../components/Layout';
+import { ListingCard } from '../components/ListingCard';
+import { CATEGORY_LABEL, DEAL_LABEL, type Listing } from '../types';
+
+export default function Detail() {
+  const { slug } = useParams();
+  const state = usePublished();
+  const all = publicListings(state);
+  const listing = all.find((l) => l.slug === slug);
+
+  usePageMeta(
+    listing ? `${listing.title} | ${SITE.name}` : SITE.name,
+    listing ? `${DEAL_LABEL[listing.dealType]} ${CATEGORY_LABEL[listing.category]} – ${formatLocation(listing)} – ${formatPrice(listing)}` : undefined,
+  );
+
+  if (state.status === 'loading') {
+    return (
+      <PublicLayout>
+        <div className="container section">
+          <div className="detail-skeleton skeleton" />
+        </div>
+      </PublicLayout>
+    );
+  }
+
+  if (!listing) {
+    return (
+      <PublicLayout>
+        <div className="container section">
+          <div className="empty">
+            <h3>{state.status === 'invalid' ? 'İlan güvenlik doğrulamasından geçemedi' : 'İlan bulunamadı'}</h3>
+            <p>Bu ilan yayından kaldırılmış ya da bağlantı hatalı olabilir.</p>
+            <Link className="btn btn-primary" to="/">
+              Tüm ilanlara dön
+            </Link>
+          </div>
+        </div>
+      </PublicLayout>
+    );
+  }
+
+  const similar = all
+    .filter((l) => l.id !== listing.id && l.status === 'yayinda' && (l.category === listing.category || l.dealType === listing.dealType))
+    .slice(0, 3);
+
+  return (
+    <PublicLayout>
+      <DetailView listing={listing} />
+      {similar.length > 0 && (
+        <section className="container section">
+          <h2>Benzer İlanlar</h2>
+          <div className="grid">
+            {similar.map((l) => (
+              <ListingCard key={l.id} listing={l} />
+            ))}
+          </div>
+        </section>
+      )}
+    </PublicLayout>
+  );
+}
+
+function Fact({ label, value }: { label: string; value: string | number | null | undefined }) {
+  if (value === null || value === undefined || value === '') return null;
+  return (
+    <div className="fact">
+      <dt>{label}</dt>
+      <dd>{value}</dd>
+    </div>
+  );
+}
+
+export function DetailView({ listing: l, backTo = '/', backLabel = 'Tüm ilanlar' }: { listing: Listing; backTo?: string; backLabel?: string }) {
+  const sold = l.status === 'satildi';
+  const [copied, setCopied] = useState(false);
+  const wa = listingWhatsappLink(l);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(listingUrl(l));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* pano izni yok */
+    }
+  };
+
+  return (
+    <article className="container section detail">
+      <Link to={backTo} className="back-link">
+        <IconBack width={18} height={18} /> {backLabel}
+      </Link>
+
+      <div className="detail-grid">
+        <div className="detail-main">
+          <Gallery listing={l} />
+
+          <section className="panel">
+            <h2>İlan Bilgileri</h2>
+            <dl className="facts">
+              <Fact label="İlan No" value={l.code} />
+              <Fact label="İlan Türü" value={DEAL_LABEL[l.dealType]} />
+              <Fact label="Emlak Tipi" value={CATEGORY_LABEL[l.category]} />
+              <Fact label="Brüt m²" value={l.grossM2} />
+              <Fact label="Net m²" value={l.netM2} />
+              <Fact label="Oda Sayısı" value={l.rooms} />
+              <Fact label="Banyo" value={l.bathrooms} />
+              <Fact label="Bulunduğu Kat" value={l.floor} />
+              <Fact label="Bina Yaşı" value={l.buildingAge === null ? null : l.buildingAge === 0 ? 'Sıfır bina' : `${l.buildingAge} yıl`} />
+              <Fact label="Isıtma" value={l.heating} />
+              <Fact label="İlan Tarihi" value={formatDate(l.createdAt)} />
+            </dl>
+          </section>
+
+          {l.description && (
+            <section className="panel">
+              <h2>Açıklama</h2>
+              <div className="description">
+                {l.description.split(/\n{2,}/).map((p, i) => (
+                  <p key={i}>{p}</p>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {l.features.length > 0 && (
+            <section className="panel">
+              <h2>Özellikler</h2>
+              <ul className="chips">
+                {l.features.map((f) => (
+                  <li key={f}>✓ {f}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
+
+        <aside className="detail-side">
+          <div className="panel sticky">
+            <div className="side-badges">
+              <span className={`badge badge-${l.dealType}`}>{DEAL_LABEL[l.dealType]}</span>
+              <span className="badge badge-soft">{CATEGORY_LABEL[l.category]}</span>
+              {sold && <span className="badge badge-sold">{soldLabel(l)}</span>}
+            </div>
+            <h1 className="detail-title">{l.title}</h1>
+            <p className="detail-loc">
+              <IconPin width={18} height={18} /> {formatLocation(l)}
+            </p>
+            <div className="detail-price">{formatPrice(l)}</div>
+
+            <a className="btn btn-wa btn-lg btn-block" href={wa} target="_blank" rel="noopener noreferrer">
+              <IconWhatsapp width={24} height={24} /> {sold ? 'Benzer ilanları sorun' : 'WhatsApp ile Bilgi Al'}
+            </a>
+            <p className="small muted center">İlan bilgileri ve bağlantısı mesajınıza otomatik eklenir.</p>
+
+            <button type="button" className="btn btn-ghost btn-block" onClick={copy}>
+              <IconLink width={18} height={18} /> {copied ? 'Bağlantı kopyalandı ✓' : 'İlan bağlantısını kopyala'}
+            </button>
+          </div>
+          <TrustNotice compact />
+        </aside>
+      </div>
+
+      <div className="mobile-cta">
+        <div>
+          <span className="small muted">{l.code}</span>
+          <strong>{formatPrice(l)}</strong>
+        </div>
+        <a className="btn btn-wa" href={wa} target="_blank" rel="noopener noreferrer">
+          <IconWhatsapp /> WhatsApp
+        </a>
+      </div>
+    </article>
+  );
+}
