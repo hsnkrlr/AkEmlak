@@ -28,6 +28,7 @@ interface SessionRecord {
   exp: number;
   hmacKey: CryptoKey;
   signingKey: CryptoKey;
+  vaultKey: CryptoKey;
 }
 
 interface TokenPayload {
@@ -41,6 +42,8 @@ export interface AdminSession {
   sid: string;
   exp: number;
   signingKey: CryptoKey;
+  /** Şifreden türetilen, cihazdaki gizli ayarları (GitHub anahtarı) şifreleyen anahtar */
+  vaultKey: CryptoKey;
 }
 
 export interface LoginEvent {
@@ -70,6 +73,10 @@ async function unlockSigningKey(master: CryptoKey): Promise<CryptoKey> {
     fromB64(CREDENTIALS.wrappedSigningKey),
   );
   return crypto.subtle.importKey('pkcs8', pkcs8, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+}
+
+function deriveVaultKey(master: CryptoKey): Promise<CryptoKey> {
+  return crypto.subtle.deriveKey(hkdf('akemlak/v1/vault'), master, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
 }
 
 async function appendLog(ok: boolean): Promise<void> {
@@ -115,10 +122,11 @@ export function login(password: string): Promise<LoginResult> {
 
     try {
       const signingKey = await unlockSigningKey(master);
+      const vaultKey = await deriveVaultKey(master);
       const hmacKey = await crypto.subtle.generateKey({ name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']);
       const deviceId = await getDeviceId();
       const iat = Date.now();
-      const record: SessionRecord = { sid: randomId(18), deviceId, iat, exp: iat + AUTH_POLICY.sessionMs, hmacKey, signingKey };
+      const record: SessionRecord = { sid: randomId(18), deviceId, iat, exp: iat + AUTH_POLICY.sessionMs, hmacKey, signingKey, vaultKey };
       const payload: TokenPayload = { sid: record.sid, dev: deviceId, iat, exp: record.exp };
       const body = toB64Url(te.encode(JSON.stringify(payload)));
       const sig = toB64Url(await crypto.subtle.sign('HMAC', hmacKey, te.encode(body)));
@@ -149,7 +157,7 @@ export async function getSession(): Promise<AdminSession | null> {
 
   try {
     const record = await idbGet<SessionRecord>('session', SESSION_RECORD);
-    if (!record) return invalidate(false);
+    if (!record || !record.vaultKey) return invalidate(false);
     const ok = await crypto.subtle.verify('HMAC', record.hmacKey, fromB64Url(sig), te.encode(body));
     if (!ok) return invalidate(false);
     const payload = JSON.parse(td.decode(fromB64Url(body))) as TokenPayload;
@@ -164,7 +172,7 @@ export async function getSession(): Promise<AdminSession | null> {
       record.exp - record.iat <= AUTH_POLICY.sessionMs &&
       now < record.exp;
     if (!valid) return invalidate(now >= record.exp);
-    return { sid: record.sid, exp: record.exp, signingKey: record.signingKey };
+    return { sid: record.sid, exp: record.exp, signingKey: record.signingKey, vaultKey: record.vaultKey };
   } catch {
     return invalidate(false);
   }

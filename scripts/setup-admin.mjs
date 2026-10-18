@@ -7,7 +7,7 @@
  * Üretilenler:
  *  - src/security/credentials.ts : PBKDF2 tuzu + doğrulama özeti + şifreyle kilitli imza anahtarı
  *  - src/security/publicKey.ts   : Yayınların doğrulandığı açık anahtar
- *  - public/data/listings.json   : Mevcut ilanlar yeni anahtarla yeniden imzalanır (yoksa örnek ilanlar)
+ *  - public/data/listings.json   : Mevcut ilanlar KORUNUR ve yeni anahtarla yeniden imzalanır (dosya yoksa boş liste)
  *
  * Şifrenin kendisi hiçbir dosyaya yazılmaz.
  */
@@ -79,10 +79,7 @@ if (existsSync(listingsPath)) {
     /* örnek veriye düş */
   }
 }
-if (!payload) {
-  const { sampleListings } = await import('./sample-listings.mjs');
-  payload = JSON.stringify({ version: 1, publishedAt: new Date().toISOString(), listings: sampleListings() });
-}
+if (!payload) payload = JSON.stringify({ version: 1, publishedAt: new Date().toISOString(), listings: [] });
 const sig = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, pair.privateKey, te.encode(payload)));
 await mkdir(dirname(listingsPath), { recursive: true });
 await writeFile(

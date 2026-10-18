@@ -23,6 +23,7 @@ npm run build      # dist/ klasörü oluşur, bu klasörü barındırma hizmetin
 - `phoneDisplay`
 - `city`
 - `siteUrl`
+- `GITHUB` (yayınların yazılacağı repo; varsayılanı `hsnkrlr/AkEmlak`)
 
 > Site **HTTPS** ile sunulmalıdır. Tarayıcılar şifreleme API'sini (Web Crypto) yalnızca güvenli bağlantıda açar.
 
@@ -44,12 +45,24 @@ Bu komut ayrıca:
 
 ## Veri nasıl saklanır ve yayınlanır?
 
-Sunucu olmadığı için akış şöyledir:
+Sunucu yoktur; ilanların tek kaynağı repodaki `public/data/` klasörüdür (`listings.json` + `img/`).
 
-1. Yöneticinin yaptığı değişiklikler o cihazın tarayıcısında (**IndexedDB**) saklanır. Fotoğraflar kaydedilmeden önce tarayıcıda küçültülür.
-2. **Yayınla → Yayın paketini indir** ile bir `.zip` dosyası oluşur. İçinde imzalı `data/listings.json` ve `data/img/*` bulunur.
-3. Zip içindeki `data` klasörü, sitenin ana dizinindeki mevcut `data` klasörünün yerine yüklenir.
-4. Ziyaretçinin tarayıcısı `/data/listings.json` dosyasını okur ve **imzasını doğrular**.
+1. Yöneticinin değişiklikleri önce o cihazın tarayıcısında (**IndexedDB**) saklanır. Bu aşamada müşteriler görmez.
+2. **Yayınla → Siteye Yayınla** düğmesi ilanları imzalar ve fotoğraflarla birlikte GitHub reposuna tek commit olarak yazar.
+3. Vercel bu commit'i görüp siteyi 1–2 dakika içinde otomatik günceller.
+
+İlk kullanımda her cihaza bir kez GitHub erişim anahtarı (fine-grained token) girilir:
+
+- Yalnızca bu repo seçilmeli ve yalnızca **Contents: Read and write** izni verilmelidir.
+- Anahtar, yönetici şifresinden türetilen anahtarla şifrelenip yalnızca o cihazda saklanır.
+
+GitHub dışı bir barındırma için alternatif: **Diğer seçenekler → Yayın paketini indir (.zip)**.
+
+### Verilerin korunması
+
+- **Kod güncellemeleri:** `public/data/` klasörüne dokunmaz. Bu klasörü yalnızca yönetim paneli değiştirir. Kod güncellemesi yapmadan önce mutlaka `git pull` ile panelden yapılan yayınları alın.
+- **Şifre değişikliği:** `npm run setup-admin` mevcut ilanları silmez, yalnızca yeni anahtarla yeniden imzalar.
+- **Birden fazla cihaz:** Başka bir cihazdan daha yeni bir yayın yapılmışsa, panel eski verinin üzerine yazmayı reddeder. Önce "Sitedeki sürümü yükle" ile güncellemeniz istenir.
 
 ## Güvenlik önlemleri
 

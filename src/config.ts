@@ -15,6 +15,17 @@ export const SITE = {
   siteUrl: '',
 } as const;
 
+/**
+ * Yayınla düğmesi ilanları bu GitHub reposuna kaydeder; Vercel değişikliği görüp siteyi
+ * otomatik günceller. `branch` boşsa reponun varsayılan dalı kullanılır.
+ */
+export const GITHUB = {
+  owner: 'hsnkrlr',
+  repo: 'AkEmlak',
+  branch: '',
+  dataDir: 'public/data',
+} as const;
+
 export const LIMITS = {
   maxImagesPerListing: 10,
   maxImageInputBytes: 15 * 1024 * 1024,

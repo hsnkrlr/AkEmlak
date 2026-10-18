@@ -1678,3 +1678,42 @@ textarea {
 .form-grid + p + .field {
   margin-top: 18px;
 }
+
+/* ---------- Yayınla ---------- */
+.howto {
+  margin: 0 0 16px;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.token-form {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.token-form input {
+  flex: 1;
+  min-width: 220px;
+  min-height: 50px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid #ddd6c8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.publish-main .btn-lg {
+  min-width: 260px;
+}
+details.panel summary {
+  cursor: pointer;
+  font-weight: 650;
+}
+details.panel[open] summary {
+  margin-bottom: 12px;
+}
+.admin-main > .panel + .panel,
+.admin-main > .alert + .panel,
+.admin-main > .panel + .alert,
+.admin-main > .panel + details {
+  margin-top: 14px;
+}

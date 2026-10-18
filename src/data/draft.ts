@@ -32,8 +32,24 @@ async function patchMeta(p: Partial<DraftMeta>): Promise<void> {
   await idbPut('meta', { ...(await getMeta()), ...p }, META_KEY);
 }
 
+/** İlk sürümdeki örnek ilanlar; yönetici verisinden otomatik temizlenir. */
+export const isSampleListing = (l: Pick<Listing, 'id'>) => /^ornek-\d+$/.test(l.id);
+
 export async function ensureDraft(): Promise<void> {
   if (!(await getMeta()).initialized) await syncFromLive();
+  await removeSampleListings();
+}
+
+/** Tek seferlik: eski sürümden kalan örnek ilanları siler, yöneticinin kendi ilanlarına dokunmaz. */
+async function removeSampleListings(): Promise<void> {
+  if (await idbGet<boolean>('meta', 'samplesRemoved')) return;
+  const samples = (await idbGetAll<Listing>('listings')).filter(isSampleListing);
+  for (const l of samples) await idbDelete('listings', l.id);
+  if (samples.length) {
+    await gcImages();
+    await patchMeta({ dirty: true });
+  }
+  await idbPut('meta', true, 'samplesRemoved');
 }
 
 /** Yerel değişiklikleri atar ve yayındaki (imzası doğrulanmış) sürümü yükler. */
@@ -44,7 +60,8 @@ export async function syncFromLive(): Promise<{ missingImages: number }> {
   }
   if (state.status !== 'ok') throw new Error('Yayındaki ilanlar okunamadı. İnternet bağlantınızı kontrol edin.');
 
-  const { listings, publishedAt } = state.data;
+  const { publishedAt } = state.data;
+  const listings = state.data.listings.filter((l) => !isSampleListing(l));
   let missingImages = 0;
   const have = new Set((await idbKeys('images')).map(String));
   for (const name of listings.flatMap((l) => l.images)) {
@@ -64,6 +81,7 @@ export async function syncFromLive(): Promise<{ missingImages: number }> {
   for (const l of listings) await idbPut('listings', l);
   await gcImages();
   await idbPut('meta', { initialized: true, dirty: false, syncedAt: Date.now(), livePublishedAt: publishedAt }, META_KEY);
+  await idbPut('meta', true, 'samplesRemoved');
   return { missingImages };
 }
 
@@ -136,25 +154,46 @@ listings.json dosyasını elle DÜZENLEMEYİN. Dosya dijital olarak imzalıdır;
 tek bir karakter bile değişirse site ilanları güvenlik nedeniyle göstermez.
 `;
 
-/** Yayınlanacak ilanları imzalar ve sitenin /data klasörü olarak zip paketi üretir. */
-export async function buildPublishPackage(session: AdminSession): Promise<{ blob: Blob; count: number }> {
-  const listings = (await listDrafts()).filter((l) => l.status !== 'taslak');
+export interface SignedRelease {
+  /** listings.json dosyasının içeriği */
+  json: string;
+  publishedAt: string;
+  count: number;
+  /** Yayına girecek görsel dosyaları (tam boy + küçük), dosya adı → içerik */
+  images: Map<string, Blob>;
+}
+
+/** Yayındaki (taslak olmayan) ilanları imzalar ve gereken görselleri toplar. */
+export async function buildSignedRelease(session: AdminSession): Promise<SignedRelease> {
+  const listings = (await listDrafts()).filter((l) => l.status !== 'taslak' && !isSampleListing(l));
   const payload: PublishedPayload = { version: 1, publishedAt: new Date().toISOString(), listings };
   const signed = await signPayload(session.signingKey, JSON.stringify(payload));
-
-  const files: Zippable = {
-    'BENIOKU.txt': te.encode(README),
-    'data/listings.json': [te.encode(JSON.stringify(signed, null, 2) + '\n'), { level: 6 }],
-  };
+  const images = new Map<string, Blob>();
   for (const name of new Set(listings.flatMap((l) => l.images))) {
     if (!IMAGE_NAME_RE.test(name)) continue;
     for (const file of [name, thumbName(name)]) {
       const blob = await idbGet<Blob>('images', file);
       if (!blob) throw new Error(`Bir fotoğraf bulunamadı (${file}). İlgili ilanı açıp fotoğrafları yeniden ekleyin.`);
-      files[`data/img/${file}`] = [new Uint8Array(await blob.arrayBuffer()), { level: 0 }];
+      images.set(file, blob);
     }
   }
+  return { json: JSON.stringify(signed, null, 2) + '\n', publishedAt: payload.publishedAt, count: listings.length, images };
+}
+
+/** Yayın başarıyla siteye ulaştığında çağrılır. */
+export async function markPublished(publishedAt: string): Promise<void> {
+  await patchMeta({ dirty: false, exportedAt: Date.now(), livePublishedAt: publishedAt });
+}
+
+/** Elle yükleme için: sitenin /data klasörünü zip paketi olarak üretir. */
+export async function buildPublishPackage(session: AdminSession): Promise<{ blob: Blob; count: number }> {
+  const release = await buildSignedRelease(session);
+  const files: Zippable = {
+    'BENIOKU.txt': te.encode(README),
+    'data/listings.json': [te.encode(release.json), { level: 6 }],
+  };
+  for (const [file, blob] of release.images) files[`data/img/${file}`] = [new Uint8Array(await blob.arrayBuffer()), { level: 0 }];
   const zipped = zipSync(files);
-  await patchMeta({ dirty: false, exportedAt: Date.now() });
-  return { blob: new Blob([zipped], { type: 'application/zip' }), count: listings.length };
+  await markPublished(release.publishedAt);
+  return { blob: new Blob([zipped], { type: 'application/zip' }), count: release.count };
 }

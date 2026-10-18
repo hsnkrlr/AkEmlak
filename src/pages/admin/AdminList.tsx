@@ -45,7 +45,7 @@ export default function AdminList() {
   const doDelete = async () => {
     if (!toDelete) return;
     await deleteDraft(toDelete.id);
-    toast('İlan silindi. Siteden kalkması için yayınlamayı unutmayın.');
+    toast('İlan silindi. Siteden kalkması için “Yayınla”ya basın.');
     setToDelete(null);
     await refresh();
   };
@@ -81,7 +81,7 @@ export default function AdminList() {
       )}
       {meta?.dirty && (
         <div className="alert alert-info row-between">
-          <span>Yayınlanmamış değişiklikleriniz var. Müşterilerin görmesi için yayın paketini indirip siteye yükleyin.</span>
+          <span>Yayınlanmamış değişiklikleriniz var. Müşterilerin görmesi için “Yayınla”ya basın.</span>
           <Link to="/admin/yayinla" className="btn btn-primary btn-sm">
             Yayınla
           </Link>

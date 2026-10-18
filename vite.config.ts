@@ -8,7 +8,7 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  "connect-src 'self'",
+  "connect-src 'self' https://api.github.com",
   "object-src 'none'",
   "base-uri 'none'",
   "form-action 'self'",

@@ -256,7 +256,7 @@ export default function ListingEditor() {
         createdAt: original?.createdAt ?? now,
         updatedAt: now,
       });
-      toast(`"${saved.title}" kaydedildi.`);
+      toast(`"${saved.title}" kaydedildi. Sitede görünmesi için “Yayınla”ya basın.`);
       navigate('/admin');
     } catch (err) {
       setErrors([(err as Error).message]);

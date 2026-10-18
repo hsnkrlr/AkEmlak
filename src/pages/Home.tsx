@@ -194,8 +194,12 @@ export default function Home() {
             </div>
           ) : (
             <div className="empty">
-              <h3>Aradığınız kriterde ilan bulunamadı</h3>
-              <p>Filtreleri değiştirin ya da bize yazın; size uygun portföyü sizin için bulalım.</p>
+              <h3>{all.length ? 'Aradığınız kriterde ilan bulunamadı' : 'Yeni ilanlarımız çok yakında burada'}</h3>
+              <p>
+                {all.length
+                  ? 'Filtreleri değiştirin ya da bize yazın; size uygun portföyü sizin için bulalım.'
+                  : 'Ne aradığınızı bize yazın, portföyümüzdeki uygun seçenekleri hemen iletelim.'}
+              </p>
               <a className="btn btn-wa" href={generalWhatsappLink()} target="_blank" rel="noopener noreferrer">
                 <IconWhatsapp /> Aradığımı Bulun
               </a>
