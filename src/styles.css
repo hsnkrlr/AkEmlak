@@ -1717,3 +1717,36 @@ details.panel[open] summary {
 .admin-main > .panel + details {
   margin-top: 14px;
 }
+
+/* ---------- Site eşitleme durumu ---------- */
+.sync-pill {
+  border: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.88rem;
+  white-space: nowrap;
+  cursor: default;
+  background: #f1f1ef;
+  color: var(--muted);
+}
+.sync-pill.sync-done {
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+}
+.sync-pill.sync-syncing {
+  background: var(--info-soft);
+  color: #0e5a70;
+}
+.sync-pill.sync-disconnected,
+.sync-pill.sync-error {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.sync-pill.sync-error {
+  cursor: pointer;
+}
+.admin .container > .alert:first-child {
+  margin-top: 14px;
+}

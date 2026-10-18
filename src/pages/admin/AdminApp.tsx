@@ -68,6 +68,58 @@ function Gate() {
   );
 }
 
+function SyncBadge() {
+  const { sync, requestSync } = useAdmin();
+  const label = {
+    checking: '…',
+    disconnected: '⚠ Siteye bağlı değil',
+    syncing: '⏳ Gönderiliyor',
+    done: '✓ Sitede kayıtlı',
+    error: '⚠ Gönderilemedi',
+  }[sync.status];
+  return (
+    <button
+      type="button"
+      className={`sync-pill sync-${sync.status}`}
+      title={sync.message}
+      onClick={() => sync.status === 'error' && requestSync()}
+      aria-live="polite"
+    >
+      {label}
+    </button>
+  );
+}
+
+function SyncBanner() {
+  const { sync, requestSync } = useAdmin();
+  if (sync.status === 'disconnected') {
+    return (
+      <div className="alert alert-err row-between">
+        <span>
+          <b>Site bağlantısı kurulmadı.</b> Eklediğiniz ilanlar şu an yalnızca bu cihazda kayıtlı; müşteriler göremez. Bir
+          kereliğine bağlantıyı kurun, sonrasında her kayıt otomatik olarak siteye gider.
+        </span>
+        <Link to="/admin/yayinla" className="btn btn-primary btn-sm">
+          Bağlantıyı kur
+        </Link>
+      </div>
+    );
+  }
+  if (sync.status === 'error') {
+    return (
+      <div className="alert alert-err row-between">
+        <span>
+          <b>Değişiklikler siteye gönderilemedi.</b> {sync.message} Verileriniz bu cihazda güvende; tekrar deneyebilirsiniz.
+        </span>
+        <button type="button" className="btn btn-primary btn-sm" onClick={requestSync}>
+          Tekrar dene
+        </button>
+      </div>
+    );
+  }
+  return null;
+}
+
 function Shell() {
   const { remaining, signOut } = useAdmin();
   const low = remaining < 60_000;
@@ -82,9 +134,10 @@ function Shell() {
               İlanlar
             </NavLink>
             <NavLink to="/admin/yeni">+ Yeni İlan</NavLink>
-            <NavLink to="/admin/yayinla">Yayınla</NavLink>
+            <NavLink to="/admin/yayinla">Site Bağlantısı</NavLink>
           </nav>
           <div className="admin-bar-right">
+            <SyncBadge />
             <span className={`session-pill ${low ? 'low' : ''}`} title="Güvenlik için oturum 15 dakika sonra kapanır">
               ⏱ {formatCountdown(remaining)}
             </span>
@@ -99,6 +152,9 @@ function Shell() {
           <div className="alert alert-warn">Oturumunuz 1 dakika içinde kapanacak. Kaydedilmemiş değişikliklerinizi şimdi kaydedin.</div>
         </div>
       )}
+      <div className="container">
+        <SyncBanner />
+      </div>
       {!isWhatsappConfigured() && (
         <div className="container">
           <div className="alert alert-warn">

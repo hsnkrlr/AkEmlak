@@ -47,22 +47,26 @@ Bu komut ayrıca:
 
 Sunucu yoktur; ilanların tek kaynağı repodaki `public/data/` klasörüdür (`listings.json` + `img/`).
 
-1. Yöneticinin değişiklikleri önce o cihazın tarayıcısında (**IndexedDB**) saklanır. Bu aşamada müşteriler görmez.
-2. **Yayınla → Siteye Yayınla** düğmesi ilanları imzalar ve fotoğraflarla birlikte GitHub reposuna tek commit olarak yazar.
-3. Vercel bu commit'i görüp siteyi 1–2 dakika içinde otomatik günceller.
+- Yönetim panelinde **kaydedilen, düzenlenen, silinen her ilan** hem o cihazın tarayıcısına (IndexedDB) hem de otomatik olarak GitHub reposuna kaydedilir. Ayrıca "Yayınla" adımı yoktur.
+- Vercel her commit'te siteyi 1–2 dakika içinde günceller.
+- Panel her açıldığında diğer cihazlarda yapılan değişiklikler bu cihaza alınır (fotoğraflar dahil).
+- Üst çubuktaki rozet durumu gösterir: **✓ Sitede kayıtlı** / **⏳ Gönderiliyor** / **⚠ Gönderilemedi** / **⚠ Siteye bağlı değil**.
 
-İlk kullanımda her cihaza bir kez GitHub erişim anahtarı (fine-grained token) girilir:
+İlk kullanımda her cihaza bir kez **Site Bağlantısı** sayfasından GitHub erişim anahtarı (fine-grained token) girilir:
 
 - Yalnızca bu repo seçilmeli ve yalnızca **Contents: Read and write** izni verilmelidir.
 - Anahtar, yönetici şifresinden türetilen anahtarla şifrelenip yalnızca o cihazda saklanır.
+- Bağlantı kurulmadan önce eklenen ilanlar kaybolmaz; bağlantı kurulduğu anda siteye gönderilir.
 
-GitHub dışı bir barındırma için alternatif: **Diğer seçenekler → Yayın paketini indir (.zip)**.
+GitHub dışı bir barındırma için alternatif: **Site Bağlantısı → Diğer seçenekler → Yayın paketini indir (.zip)**.
 
 ### Verilerin korunması
 
 - **Kod güncellemeleri:** `public/data/` klasörüne dokunmaz. Bu klasörü yalnızca yönetim paneli değiştirir. Kod güncellemesi yapmadan önce mutlaka `git pull` ile panelden yapılan yayınları alın.
 - **Şifre değişikliği:** `npm run setup-admin` mevcut ilanları silmez, yalnızca yeni anahtarla yeniden imzalar.
-- **Birden fazla cihaz:** Başka bir cihazdan daha yeni bir yayın yapılmışsa, panel eski verinin üzerine yazmayı reddeder. Önce "Sitedeki sürümü yükle" ile güncellemeniz istenir.
+- **Birden fazla cihaz:** Değişiklikler üç yönlü birleştirilir. Aynı ilan iki yerde değiştiyse en son kaydedilen kazanır. Bir cihazda eklenen ilan diğerinin gönderimiyle silinmez; bilerek silinen ilan da geri gelmez.
+- **Eşzamanlı gönderim:** Aynı anda iki cihaz gönderim yaparsa GitHub ikinciyi reddeder. Panel güncel veriyi yeniden birleştirip tekrar dener.
+- **Kurcalanmış veri:** Sitedeki dosyanın imzası bozuksa ona güvenilmez ve hiçbir yerel ilan silinmez.
 
 ## Güvenlik önlemleri
 

@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { GITHUB } from '../../config';
 import { buildPublishPackage, getMeta, syncFromLive, type DraftMeta } from '../../data/draft';
-import { forgetGithubToken, hasGithubToken, publishToGithub, saveGithubToken } from '../../data/github';
+import { forgetGithubToken, hasGithubToken, saveGithubToken } from '../../data/github';
 import { loadPublished } from '../../data/published';
 import { formatDateTime } from '../../lib/format';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
@@ -10,12 +10,11 @@ import { useAdmin } from './session';
 const TOKEN_URL = 'https://github.com/settings/personal-access-tokens/new';
 
 export default function PublishPanel() {
-  const { session, toast } = useAdmin();
+  const { session, toast, sync, requestSync, refreshConnection } = useAdmin();
   const [meta, setMeta] = useState<DraftMeta | null>(null);
   const [connected, setConnected] = useState<boolean | null>(null);
   const [token, setToken] = useState('');
   const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState('');
   const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmForget, setConfirmForget] = useState(false);
@@ -40,7 +39,7 @@ export default function PublishPanel() {
   useEffect(() => {
     void refresh();
     void checkLive();
-  }, []);
+  }, [sync.status]);
 
   const connect = async (e: FormEvent) => {
     e.preventDefault();
@@ -49,29 +48,12 @@ export default function PublishPanel() {
     try {
       await saveGithubToken(session, token);
       setToken('');
-      toast('GitHub bağlantısı kuruldu.');
+      toast('Siteye bağlandı. İlanlarınız şimdi gönderiliyor…');
       await refresh();
+      await refreshConnection();
     } catch (err) {
       setResult({ ok: false, msg: (err as Error).message });
     } finally {
-      setBusy(false);
-    }
-  };
-
-  const publish = async () => {
-    setBusy(true);
-    setResult(null);
-    try {
-      const { count } = await publishToGithub(session, setProgress);
-      setResult({
-        ok: true,
-        msg: `Yayınlandı (${count} ilan). Site 1–2 dakika içinde otomatik güncellenir; sonra aşağıdan doğrulayabilirsiniz.`,
-      });
-      await refresh();
-    } catch (err) {
-      setResult({ ok: false, msg: (err as Error).message });
-    } finally {
-      setProgress('');
       setBusy(false);
     }
   };
@@ -102,6 +84,7 @@ export default function PublishPanel() {
       const { missingImages } = await syncFromLive();
       toast(missingImages ? `Sitedeki sürüm yüklendi (${missingImages} fotoğraf bulunamadı).` : 'Sitedeki sürüm yüklendi.');
       await refresh();
+      requestSync();
     } catch (err) {
       toast((err as Error).message, 'err');
     } finally {
@@ -112,16 +95,20 @@ export default function PublishPanel() {
   const forget = async () => {
     setConfirmForget(false);
     await forgetGithubToken();
-    toast('GitHub bağlantısı bu cihazdan kaldırıldı.');
+    toast('Site bağlantısı bu cihazdan kaldırıldı.');
     await refresh();
+    await refreshConnection();
   };
 
   return (
     <>
       <div className="admin-head">
         <div>
-          <h1>Yayınla</h1>
-          <p className="muted">Panelde yaptığınız değişiklikler, yayınlayana kadar yalnızca bu cihazda durur; müşteriler görmez.</p>
+          <h1>Site Bağlantısı</h1>
+          <p className="muted">
+            Bağlantı kurulduğunda eklediğiniz, düzenlediğiniz veya sildiğiniz her ilan hem bu cihaza hem de sitenin dosyalarına
+            otomatik kaydedilir.
+          </p>
         </div>
       </div>
 
@@ -129,8 +116,8 @@ export default function PublishPanel() {
         <section className="panel">
           <h2>Siteye bağlan (yalnızca ilk seferde)</h2>
           <p>
-            Yayınla düğmesinin ilanları siteye gönderebilmesi için bu cihaza bir kez GitHub erişim anahtarı girmeniz gerekir.
-            Anahtar şifrenizle kilitlenerek yalnızca bu cihazda saklanır.
+            İlanların siteye kaydedilebilmesi için bu cihaza bir kez GitHub erişim anahtarı girmeniz gerekir. Anahtar şifrenizle
+            kilitlenerek yalnızca bu cihazda saklanır.
           </p>
           <ol className="howto">
             <li>
@@ -171,16 +158,14 @@ export default function PublishPanel() {
 
       {connected && (
         <section className="panel publish-main">
-          <h2>Değişiklikleri siteye gönder</h2>
-          {meta?.dirty ? (
-            <p className="alert alert-info">Yayınlanmamış değişiklikleriniz var.</p>
-          ) : (
-            <p className="small muted">Yayınlanmamış değişiklik yok.</p>
-          )}
-          <button type="button" className="btn btn-primary btn-lg" onClick={publish} disabled={busy}>
-            {busy && progress ? progress : '🚀 Siteye Yayınla'}
+          <h2>Bağlantı durumu</h2>
+          <p className={sync.status === 'error' ? 'danger-text' : sync.status === 'done' ? 'ok-text' : ''}>
+            {sync.status === 'syncing' ? `⏳ ${sync.message}` : sync.status === 'done' ? `✓ ${sync.message}` : sync.status === 'error' ? `⚠ ${sync.message}` : sync.message}
+          </p>
+          {meta?.exportedAt && <p className="small muted">Son eşitleme: {formatDateTime(meta.exportedAt)}</p>}
+          <button type="button" className="btn btn-primary" onClick={requestSync} disabled={sync.status === 'syncing'}>
+            {sync.status === 'syncing' ? 'Gönderiliyor…' : '⟳ Şimdi eşitle'}
           </button>
-          {meta?.exportedAt && <p className="small muted">Son yayın: {formatDateTime(meta.exportedAt)}</p>}
         </section>
       )}
 
@@ -198,19 +183,16 @@ export default function PublishPanel() {
         {live && <p className={live.startsWith('✓') ? 'ok-text' : 'danger-text'}>{live}</p>}
       </section>
 
-      <section className="panel">
-        <h2>Başka cihazdan çalışma / değişiklikleri geri alma</h2>
-        <p className="small muted">
-          Başka bir cihazda yayın yaptıysanız, bu cihazda çalışmadan önce sitedeki güncel sürümü yükleyin. Böylece yeni
-          yayın, diğer cihazda eklenen ilanları silmez.
-        </p>
-        <button type="button" className="btn btn-ghost" onClick={() => setConfirmReset(true)} disabled={busy}>
-          Sitedeki sürümü yükle
-        </button>
-      </section>
-
       <details className="panel">
         <summary>Diğer seçenekler</summary>
+        <p className="small muted">
+          Bu cihazdaki kaydedilmemiş değişiklikleri iptal edip sitedeki sürüme dönmek için:
+        </p>
+        <p>
+          <button type="button" className="btn btn-ghost" onClick={() => setConfirmReset(true)} disabled={busy}>
+            Sitedeki sürümü yükle
+          </button>
+        </p>
         <p className="small muted">
           GitHub kullanmayan bir barındırma için: imzalı yayın paketini indirip içindeki <b>data</b> klasörünü sitenizin ana
           dizinine yükleyebilirsiniz.
@@ -221,7 +203,7 @@ export default function PublishPanel() {
           </button>
           {connected && (
             <button type="button" className="btn btn-ghost btn-sm danger-text" onClick={() => setConfirmForget(true)}>
-              GitHub bağlantısını bu cihazdan kaldır
+              Site bağlantısını bu cihazdan kaldır
             </button>
           )}
         </div>
@@ -239,13 +221,13 @@ export default function PublishPanel() {
       </ConfirmDialog>
       <ConfirmDialog
         open={confirmForget}
-        title="GitHub bağlantısı kaldırılsın mı?"
+        title="Site bağlantısı kaldırılsın mı?"
         confirmLabel="Kaldır"
         danger
         onConfirm={forget}
         onCancel={() => setConfirmForget(false)}
       >
-        <p>Bu cihazdan tekrar yayın yapmak için anahtarı yeniden girmeniz gerekir.</p>
+        <p>Bu cihazda yapılan değişiklikler siteye gitmez; tekrar bağlanmak için anahtarı yeniden girmeniz gerekir.</p>
       </ConfirmDialog>
     </>
   );

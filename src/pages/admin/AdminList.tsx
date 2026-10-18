@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { deleteDraft, ensureDraft, getMeta, listDrafts, saveDraft, type DraftMeta } from '../../data/draft';
+import { deleteDraft, ensureDraft, listDrafts, saveDraft } from '../../data/draft';
 import { categoryLabel, formatDateTime, formatPrice } from '../../lib/format';
 import { getLoginLog, type LoginEvent } from '../../security/auth';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
@@ -9,9 +9,8 @@ import { DEAL_LABEL, STATUS_LABEL, type Listing, type ListingStatus } from '../.
 import { useAdmin } from './session';
 
 export default function AdminList() {
-  const { toast } = useAdmin();
+  const { toast, requestSync, dataVersion } = useAdmin();
   const [items, setItems] = useState<Listing[] | null>(null);
-  const [meta, setMeta] = useState<DraftMeta | null>(null);
   const [log, setLog] = useState<LoginEvent[]>([]);
   const [q, setQ] = useState('');
   const [toDelete, setToDelete] = useState<Listing | null>(null);
@@ -19,7 +18,6 @@ export default function AdminList() {
 
   const refresh = async () => {
     setItems(await listDrafts());
-    setMeta(await getMeta());
   };
 
   useEffect(() => {
@@ -27,7 +25,7 @@ export default function AdminList() {
       .catch((e: Error) => setLoadError(e.message))
       .finally(refresh);
     getLoginLog().then(setLog);
-  }, []);
+  }, [dataVersion]);
 
   const filtered = useMemo(() => {
     const t = q.toLocaleLowerCase('tr-TR').trim();
@@ -40,14 +38,16 @@ export default function AdminList() {
     await saveDraft({ ...l, status });
     toast(`"${l.title}" → ${STATUS_LABEL[status]}`);
     await refresh();
+    requestSync();
   };
 
   const doDelete = async () => {
     if (!toDelete) return;
     await deleteDraft(toDelete.id);
-    toast('İlan silindi. Siteden kalkması için “Yayınla”ya basın.');
+    toast('İlan silindi.');
     setToDelete(null);
     await refresh();
+    requestSync();
   };
 
   const counts = items
@@ -77,14 +77,6 @@ export default function AdminList() {
         <div className="alert alert-warn">
           Son başarılı girişinizden önce bu cihazda <b>{recentFails} hatalı şifre denemesi</b> yapıldı. Siz değilseniz şifrenizi
           değiştirmeniz önerilir.
-        </div>
-      )}
-      {meta?.dirty && (
-        <div className="alert alert-info row-between">
-          <span>Yayınlanmamış değişiklikleriniz var. Müşterilerin görmesi için “Yayınla”ya basın.</span>
-          <Link to="/admin/yayinla" className="btn btn-primary btn-sm">
-            Yayınla
-          </Link>
         </div>
       )}
 

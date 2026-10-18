@@ -121,7 +121,7 @@ function Field({ label, hint, children, wide }: { label: string; hint?: string; 
 export default function ListingEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { toast } = useAdmin();
+  const { toast, requestSync } = useAdmin();
   const [form, setForm] = useState<Form>(EMPTY);
   const [original, setOriginal] = useState<Listing | null>(null);
   const [slugTouched, setSlugTouched] = useState(false);
@@ -256,7 +256,8 @@ export default function ListingEditor() {
         createdAt: original?.createdAt ?? now,
         updatedAt: now,
       });
-      toast(`"${saved.title}" kaydedildi. Sitede görünmesi için “Yayınla”ya basın.`);
+      toast(`"${saved.title}" kaydedildi, siteye gönderiliyor…`);
+      requestSync();
       navigate('/admin');
     } catch (err) {
       setErrors([(err as Error).message]);

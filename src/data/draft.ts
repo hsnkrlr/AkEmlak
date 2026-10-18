@@ -22,7 +22,12 @@ export interface DraftMeta {
   syncedAt?: number;
   exportedAt?: number;
   livePublishedAt?: string;
+  /** Son eşitlemede sitede olan ilanlar (id → updatedAt). Cihazlar arası birleştirmede silinenleri ayırt etmek için. */
+  base?: Record<string, string>;
 }
+
+export const baseOf = (listings: Listing[]): Record<string, string> =>
+  Object.fromEntries(listings.filter((l) => l.status !== 'taslak').map((l) => [l.id, l.updatedAt]));
 
 export async function getMeta(): Promise<DraftMeta> {
   return (await idbGet<DraftMeta>('meta', META_KEY)) ?? { initialized: false, dirty: false };
@@ -35,9 +40,17 @@ async function patchMeta(p: Partial<DraftMeta>): Promise<void> {
 /** İlk sürümdeki örnek ilanlar; yönetici verisinden otomatik temizlenir. */
 export const isSampleListing = (l: Pick<Listing, 'id'>) => /^ornek-\d+$/.test(l.id);
 
-export async function ensureDraft(): Promise<void> {
-  if (!(await getMeta()).initialized) await syncFromLive();
-  await removeSampleListings();
+let ensuring: Promise<void> | null = null;
+
+/** Cihazda çalışma kopyası yoksa siteden oluşturur. Aynı anda birden çok çağrı tek işlem olarak çalışır. */
+export function ensureDraft(): Promise<void> {
+  ensuring ??= (async () => {
+    if (!(await getMeta()).initialized) await syncFromLive();
+    await removeSampleListings();
+  })().finally(() => {
+    ensuring = null;
+  });
+  return ensuring;
 }
 
 /** Tek seferlik: eski sürümden kalan örnek ilanları siler, yöneticinin kendi ilanlarına dokunmaz. */
@@ -80,7 +93,7 @@ export async function syncFromLive(): Promise<{ missingImages: number }> {
   await idbClear('listings');
   for (const l of listings) await idbPut('listings', l);
   await gcImages();
-  await idbPut('meta', { initialized: true, dirty: false, syncedAt: Date.now(), livePublishedAt: publishedAt }, META_KEY);
+  await idbPut('meta', { initialized: true, dirty: false, syncedAt: Date.now(), livePublishedAt: publishedAt, base: baseOf(listings) }, META_KEY);
   await idbPut('meta', true, 'samplesRemoved');
   return { missingImages };
 }
@@ -154,35 +167,50 @@ listings.json dosyasını elle DÜZENLEMEYİN. Dosya dijital olarak imzalıdır;
 tek bir karakter bile değişirse site ilanları güvenlik nedeniyle göstermez.
 `;
 
+/** Tüm yerel ilanları verilen listeyle değiştirir (cihazlar arası birleştirme sonrası). */
+export async function replaceDrafts(listings: Listing[]): Promise<void> {
+  await idbClear('listings');
+  for (const l of listings) await idbPut('listings', l);
+}
+
+export async function hasImage(file: string): Promise<boolean> {
+  return !!(await idbGet<Blob>('images', file));
+}
+
+export async function putImageBlob(file: string, blob: Blob): Promise<void> {
+  await idbPut('images', blob, file);
+}
+
 export interface SignedRelease {
   /** listings.json dosyasının içeriği */
   json: string;
   publishedAt: string;
   count: number;
-  /** Yayına girecek görsel dosyaları (tam boy + küçük), dosya adı → içerik */
-  images: Map<string, Blob>;
+  listings: Listing[];
+  /** Yayına girecek görsel dosyaları (tam boy + küçük), dosya adı → içerik (sitede zaten olanlar için null) */
+  images: Map<string, Blob | null>;
 }
 
 /** Yayındaki (taslak olmayan) ilanları imzalar ve gereken görselleri toplar. */
-export async function buildSignedRelease(session: AdminSession): Promise<SignedRelease> {
+export async function buildSignedRelease(session: AdminSession, remoteImages: Set<string> = new Set()): Promise<SignedRelease> {
   const listings = (await listDrafts()).filter((l) => l.status !== 'taslak' && !isSampleListing(l));
   const payload: PublishedPayload = { version: 1, publishedAt: new Date().toISOString(), listings };
   const signed = await signPayload(session.signingKey, JSON.stringify(payload));
-  const images = new Map<string, Blob>();
+  const images = new Map<string, Blob | null>();
   for (const name of new Set(listings.flatMap((l) => l.images))) {
     if (!IMAGE_NAME_RE.test(name)) continue;
     for (const file of [name, thumbName(name)]) {
-      const blob = await idbGet<Blob>('images', file);
-      if (!blob) throw new Error(`Bir fotoğraf bulunamadı (${file}). İlgili ilanı açıp fotoğrafları yeniden ekleyin.`);
+      const blob = (await idbGet<Blob>('images', file)) ?? null;
+      if (!blob && !remoteImages.has(file)) throw new Error(`Bir fotoğraf bulunamadı (${file}). İlgili ilanı açıp fotoğrafları yeniden ekleyin.`);
       images.set(file, blob);
     }
   }
-  return { json: JSON.stringify(signed, null, 2) + '\n', publishedAt: payload.publishedAt, count: listings.length, images };
+  return { json: JSON.stringify(signed, null, 2) + '\n', publishedAt: payload.publishedAt, count: listings.length, listings, images };
 }
 
 /** Yayın başarıyla siteye ulaştığında çağrılır. */
-export async function markPublished(publishedAt: string): Promise<void> {
-  await patchMeta({ dirty: false, exportedAt: Date.now(), livePublishedAt: publishedAt });
+export async function markPublished(publishedAt: string, listings: Listing[]): Promise<void> {
+  await patchMeta({ dirty: false, exportedAt: Date.now(), livePublishedAt: publishedAt, base: baseOf(listings) });
 }
 
 /** Elle yükleme için: sitenin /data klasörünü zip paketi olarak üretir. */
@@ -192,8 +220,8 @@ export async function buildPublishPackage(session: AdminSession): Promise<{ blob
     'BENIOKU.txt': te.encode(README),
     'data/listings.json': [te.encode(release.json), { level: 6 }],
   };
-  for (const [file, blob] of release.images) files[`data/img/${file}`] = [new Uint8Array(await blob.arrayBuffer()), { level: 0 }];
+  for (const [file, blob] of release.images) if (blob) files[`data/img/${file}`] = [new Uint8Array(await blob.arrayBuffer()), { level: 0 }];
   const zipped = zipSync(files);
-  await markPublished(release.publishedAt);
+  await markPublished(release.publishedAt, release.listings);
   return { blob: new Blob([zipped], { type: 'application/zip' }), count: release.count };
 }
