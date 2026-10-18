@@ -6,9 +6,9 @@ export const SITE = {
   name: 'Ak Emlak',
   slogan: 'Güvenilir adres, doğru yatırım',
   /** Ülke koduyla, başında + veya 0 olmadan. Örn: 905321234567 */
-  whatsappNumber: '905000000000',
+  whatsappNumber: '905423285554',
   /** Sitede gösterilen biçim */
-  phoneDisplay: '+90 500 000 00 00',
+  phoneDisplay: '0542 328 55 54',
   city: 'Gaziantep',
   workingHours: 'Her gün 09:00 – 20:00',
   /** Boş bırakılırsa tarayıcıdaki alan adı kullanılır */
