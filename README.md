@@ -99,7 +99,7 @@ npm run build      # dist/ klasörü oluşur
 
 ## Google Analytics
 
-GA4 ölçüm kimliği `G-138R7E504Z`. Etiket `index.html` içinde, başlatma kodu `public/ga-init.js` dosyasında. Kimliği değiştirmek için bu iki dosyayı güncelleyin. Sayfa geçişleri GA4'ün "geliştirilmiş ölçüm" (enhanced measurement) özelliğiyle otomatik sayılır.
+GA4 ölçüm kimliği `G-D2F1KZ11MT`. Etiket `index.html` içinde, başlatma kodu `public/ga-init.js` dosyasında. Kimliği değiştirmek için bu iki dosyayı güncelleyin. Sayfa geçişleri GA4'ün "geliştirilmiş ölçüm" (enhanced measurement) özelliğiyle otomatik sayılır.
 
 ## Güvenlik
 
