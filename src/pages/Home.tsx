@@ -29,6 +29,8 @@ function filterListings(list: Listing[], q: string, deal: DealType | '', group: 
   const rank = (l: Listing) => (l.status === 'satildi' ? 2 : l.featured ? 0 : 1);
   return out.sort((a, b) => {
     if (rank(a) !== rank(b)) return rank(a) - rank(b);
+    // Fiyatı gizli ilanlar fiyat sıralamalarında sona kalır
+    if (sort !== 'yeni' && (a.price <= 0) !== (b.price <= 0)) return a.price <= 0 ? 1 : -1;
     if (sort === 'artan') return a.price - b.price;
     if (sort === 'azalan') return b.price - a.price;
     return b.createdAt.localeCompare(a.createdAt);

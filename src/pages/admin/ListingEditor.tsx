@@ -56,6 +56,7 @@ interface Form {
   dealType: DealType;
   category: Category;
   price: string;
+  priceOnRequest: boolean;
   currency: Currency;
   status: ListingStatus;
   featured: boolean;
@@ -83,7 +84,7 @@ interface Form {
 }
 
 const EMPTY: Form = {
-  title: '', slug: '', dealType: 'satilik', category: 'daire', price: '', currency: 'TRY', status: 'yayinda', featured: false,
+  title: '', slug: '', dealType: 'satilik', category: 'daire', price: '', priceOnRequest: false, currency: 'TRY', status: 'yayinda', featured: false,
   city: '', district: '', neighborhood: '', grossM2: '', netM2: '', rooms: '', bathrooms: '', floor: '', buildingAge: '',
   heating: '', brand: '', model: '', modelYear: '', km: '', fuel: '', gear: '', color: '', categoryOther: '',
   features: [], description: '', images: [],
@@ -98,7 +99,8 @@ const toNum = (s: string): number | null => {
 function fromListing(l: Listing): Form {
   return {
     ...l,
-    price: String(l.price),
+    price: l.price > 0 ? String(l.price) : '',
+    priceOnRequest: l.price <= 0,
     grossM2: numStr(l.grossM2),
     netM2: numStr(l.netM2),
     bathrooms: numStr(l.bathrooms),
@@ -200,9 +202,9 @@ export default function ListingEditor() {
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     const errs: string[] = [];
-    const price = toNum(form.price);
+    const price = form.priceOnRequest ? 0 : toNum(form.price);
     if (form.title.trim().length < 5) errs.push('Başlık en az 5 karakter olmalı.');
-    if (price === null || price <= 0) errs.push('Geçerli bir fiyat girin.');
+    if (!form.priceOnRequest && (price === null || price <= 0)) errs.push('Geçerli bir fiyat girin ya da “Fiyatı gösterme” kutusunu işaretleyin.');
     const baseSlug = slugify(form.slug || form.title);
     if (!baseSlug) errs.push('Bağlantı adı oluşturulamadı; başlığa harf ekleyin.');
     if (!form.city.trim()) errs.push('İl bilgisi zorunludur.');
@@ -342,7 +344,14 @@ export default function ListingEditor() {
           </Field>
           <Field label={isRent ? 'Aylık kira *' : 'Fiyat *'}>
             <div className="input-group">
-              <input inputMode="numeric" value={form.price} onChange={(e) => set('price', e.target.value.replace(/[^\d.,]/g, ''))} placeholder="0" required />
+              <input
+                inputMode="numeric"
+                value={form.priceOnRequest ? '' : form.price}
+                onChange={(e) => set('price', e.target.value.replace(/[^\d.,]/g, ''))}
+                placeholder={form.priceOnRequest ? 'Fiyat için arayın' : '0'}
+                disabled={form.priceOnRequest}
+                required={!form.priceOnRequest}
+              />
               <select value={form.currency} onChange={(e) => set('currency', e.target.value as Currency)} aria-label="Para birimi">
                 {(Object.keys(CURRENCY_LABEL) as Currency[]).map((c) => (
                   <option key={c} value={c}>
@@ -361,6 +370,12 @@ export default function ListingEditor() {
               ))}
             </select>
           </Field>
+          <label className="check">
+            <input type="checkbox" checked={form.priceOnRequest} onChange={(e) => set('priceOnRequest', e.target.checked)} />
+            <span>
+              <b>Fiyatı gösterme</b> — sitede “Fiyat için arayın” yazsın
+            </span>
+          </label>
           <label className="check">
             <input type="checkbox" checked={form.featured} onChange={(e) => set('featured', e.target.checked)} />
             <span>

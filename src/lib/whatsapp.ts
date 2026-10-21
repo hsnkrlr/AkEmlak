@@ -21,12 +21,12 @@ export function listingWhatsappLink(l: Listing): string {
     `${icon} ${l.title}`,
     `📌 ${DEAL_LABEL[l.dealType]} ${categoryLabel(l)}${name ? ` – ${name}` : ''}`,
     `📍 ${formatLocation(l)}`,
-    `💰 ${formatPrice(l)}`,
-    facts.length ? `📋 ${facts.join(' · ')}` : '',
+    l.price > 0 ? `💰 ${formatPrice(l)}` : '💰 Fiyat bilgisi almak istiyorum',
+    facts.length ? `📋 ${facts.join(' · ')}` : null,
     `🔖 İlan No: ${l.code}`,
     '',
     listingUrl(l),
-  ].filter((line, i, arr) => line !== '' || arr[i - 1] !== '');
+  ].filter((line): line is string => line !== null);
   return waLink(lines.join('\n'));
 }
 

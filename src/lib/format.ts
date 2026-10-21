@@ -16,7 +16,11 @@ export function slugify(input: string): string {
     .replace(/-+$/g, '');
 }
 
+/** Fiyatı 0 girilen ilanlarda fiyat gösterilmez, müşteri iletişime yönlendirilir. */
+export const PRICE_ON_REQUEST = 'Fiyat için arayın';
+
 export function formatPrice(l: Pick<Listing, 'price' | 'currency' | 'dealType'>): string {
+  if (l.price <= 0) return PRICE_ON_REQUEST;
   const s = new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency: l.currency,
