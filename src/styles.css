@@ -1107,3 +1107,10 @@ textarea {
   color: var(--primary-ink);
   font-weight: 700;
 }
+
+/* Arama motorları için derlemede üretilen içerik; JavaScript yüklenince yerini uygulama alır */
+.prerender img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+}

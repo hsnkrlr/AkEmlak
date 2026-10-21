@@ -4,6 +4,7 @@ import { SITE } from '../config';
 import { publicListings, useListings } from '../data/listings';
 import { categoryLabel, fmtInt, formatDate, formatLocation, formatPrice, groupOf, soldLabel } from '../lib/format';
 import { usePageMeta } from '../lib/usePageMeta';
+import { listingDescription, listingTitle } from '../lib/seo';
 import { listingUrl, listingWhatsappLink } from '../lib/whatsapp';
 import { Gallery } from '../components/Gallery';
 import { IconBack, IconLink, IconPin, IconWhatsapp } from '../components/Icons';
@@ -17,10 +18,7 @@ export default function Detail() {
   const all = publicListings(state);
   const listing = all.find((l) => l.slug === slug);
 
-  usePageMeta(
-    listing ? `${listing.title} | ${SITE.name}` : SITE.name,
-    listing ? `${DEAL_LABEL[listing.dealType]} ${categoryLabel(listing)} – ${formatLocation(listing)} – ${formatPrice(listing)}` : undefined,
-  );
+  usePageMeta(listing ? listingTitle(listing) : SITE.name, listing ? listingDescription(listing) : undefined);
 
   if (state.status === 'loading') {
     return (
@@ -175,7 +173,7 @@ export function DetailView({ listing: l, backTo = '/', backLabel = 'Tüm ilanlar
             <a className="btn btn-wa btn-lg btn-block" href={wa} target="_blank" rel="noopener noreferrer">
               <IconWhatsapp width={24} height={24} /> {sold ? 'Benzer ilanları sorun' : 'WhatsApp ile Bilgi Al'}
             </a>
-            <p className="small muted center">İlan bilgileri ve bağlantısı mesajınıza otomatik eklenir.</p>
+            <p className="small muted center">İlan numarası ve bağlantısı mesaja otomatik eklenir.</p>
 
             <button type="button" className="btn btn-ghost btn-block" onClick={copy}>
               <IconLink width={18} height={18} /> {copied ? 'Bağlantı kopyalandı ✓' : 'İlan bağlantısını kopyala'}

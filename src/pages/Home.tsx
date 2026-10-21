@@ -4,6 +4,7 @@ import { SITE } from '../config';
 import { publicListings, useListings } from '../data/listings';
 import { generalWhatsappLink } from '../lib/whatsapp';
 import { usePageMeta } from '../lib/usePageMeta';
+import { homeDescription, homeTitle } from '../lib/seo';
 import { IconChat, IconSearch, IconShield, IconSpark, IconWhatsapp } from '../components/Icons';
 import { ListingCard } from '../components/ListingCard';
 import { PublicLayout, TrustNotice } from '../components/Layout';
@@ -38,12 +39,9 @@ function filterListings(list: Listing[], q: string, deal: DealType | '', group: 
 }
 
 export default function Home() {
-  usePageMeta(
-    `${SITE.name} | Satılık ve Kiralık Emlak ve Araç İlanları`,
-    `${SITE.name} güncel satılık ve kiralık daire, villa, arsa, iş yeri ve araç ilanları. WhatsApp ile hemen bilgi alın.`,
-  );
   const state = useListings();
   const all = useMemo(() => publicListings(state), [state]);
+  usePageMeta(homeTitle(), homeDescription(all));
   const [q, setQ] = useState('');
   const [deal, setDeal] = useState<DealType | ''>('');
   const [group, setGroup] = useState<CategoryGroup | ''>('');
@@ -212,7 +210,7 @@ export default function Home() {
               <IconChat />
             </span>
             <h3>Hızlı iletişim</h3>
-            <p>İlan bilgileri mesajınıza otomatik eklenir; uzun uzun anlatmanıza gerek kalmaz.</p>
+            <p>İlan numarası ve bağlantısı mesaja otomatik eklenir.</p>
           </div>
           <div className="feature">
             <span className="feature-ico">

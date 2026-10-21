@@ -97,6 +97,25 @@ npm run build      # dist/ klasörü oluşur
 - JSON yazım hatası (eksik virgül, tırnak gibi) olursa ana sayfada "İlanlar yüklenemedi" yazar. Dosyayı kaydetmeden önce [jsonlint.com](https://jsonlint.com) gibi bir araçla kontrol edin.
 - Tek bir ilanda eksik/hatalı alan varsa yalnızca o ilan atlanır. Nedeni tarayıcı konsolunda (F12) yazar.
 
+## SEO
+
+Derleme (`npm run build`) sırasında `public/data.json`'daki her ilan için hazır bir sayfa üretilir: `dist/detay/<adres>/index.html`. Böylece Google, Yandex ve WhatsApp/Facebook bağlantı önizlemeleri ilanı JavaScript beklemeden görür. Her sayfada şunlar bulunur:
+
+- ilan adı ve ilçesiyle başlık; tür, konum, fiyat ve açıklamadan oluşan ~160 karakterlik açıklama,
+- canonical adres,
+- Open Graph / Twitter etiketleri (önizleme görseli: ilanın ilk fotoğrafı, yoksa `public/og.jpg`),
+- Google için yapılandırılmış veri (JSON-LD): emlakta `RealEstateListing`, araçta `Car`, ayrıca sayfa yolu (breadcrumb),
+- ilanın metin içeriği (sayfa açılınca yerini uygulama alır).
+
+Ana sayfaya emlakçı bilgisi (`RealEstateAgent`) ve ilan listesi eklenir. Ayrıca `sitemap.xml` üretilir ve `robots.txt` dosyasına sitemap satırı yazılır.
+
+Tam adresler (canonical, sitemap) için sitenin alan adı gerekir:
+
+- **Vercel'de:** alan adı otomatik alınır (`VERCEL_PROJECT_PRODUCTION_URL`). Özel alan adı bağlıysa o kullanılır.
+- **Başka yerde:** `SITE_URL=https://alanadiniz.com npm run build` ile ya da `src/config.ts` içindeki `siteUrl` ile verilebilir.
+
+Site yayına girdikten sonra Google Search Console'a `https://alanadiniz/sitemap.xml` adresini eklemeniz önerilir.
+
 ## Google Analytics
 
 GA4 ölçüm kimliği `G-D2F1KZ11MT`. Etiket `index.html` içinde, başlatma kodu `public/ga-init.js` dosyasında. Kimliği değiştirmek için bu iki dosyayı güncelleyin. Sayfa geçişleri GA4'ün "geliştirilmiş ölçüm" (enhanced measurement) özelliğiyle otomatik sayılır.

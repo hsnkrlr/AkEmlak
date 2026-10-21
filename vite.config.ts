@@ -1,5 +1,6 @@
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import { seoPrerender } from './scripts/seo-plugin';
 
 /** İçerik Güvenlik Politikası: yalnızca kendi alan adımızdan kod/görsel yüklenir. */
 const CSP = [
@@ -26,6 +27,6 @@ const cspPlugin = (): Plugin => ({
 });
 
 export default defineConfig({
-  plugins: [react(), cspPlugin()],
+  plugins: [react(), cspPlugin(), seoPrerender()],
   build: { sourcemap: false, target: 'es2021' },
 });
