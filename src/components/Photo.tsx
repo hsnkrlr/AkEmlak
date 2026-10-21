@@ -1,9 +1,8 @@
-import { useImageSrc } from './ImageSource';
+import { imageUrl } from '../lib/format';
 import { CATEGORY_GROUP, CATEGORY_LABEL, type Category } from '../types';
 
 interface Props {
   name?: string;
-  thumb?: boolean;
   alt: string;
   category?: Category;
   className?: string;
@@ -11,13 +10,12 @@ interface Props {
 }
 
 /** İlan fotoğrafı; fotoğraf yoksa zarif bir yer tutucu gösterir. */
-export function Photo({ name, thumb = false, alt, category, className = '', eager = false }: Props) {
-  const src = useImageSrc(name, thumb);
+export function Photo({ name, alt, category, className = '', eager = false }: Props) {
   if (!name) return <Placeholder category={category} className={className} />;
   return (
     <img
       className={`photo ${className}`}
-      src={src}
+      src={imageUrl(name)}
       alt={alt}
       loading={eager ? 'eager' : 'lazy'}
       decoding="async"

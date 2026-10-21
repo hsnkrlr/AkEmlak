@@ -7,6 +7,7 @@ const TR_MAP: Record<string, string> = {
 export function slugify(input: string): string {
   return input
     .toLocaleLowerCase('tr-TR')
+    .replace(/['’`]/g, '')
     .replace(/[çğıiöşüâîû]/g, (c) => TR_MAP[c] ?? c)
     .normalize('NFKD')
     .replace(/[̀-ͯ]/g, '')
@@ -57,12 +58,9 @@ export function soldLabel(l: Pick<Listing, 'dealType'>): string {
   return l.dealType === 'kiralik' ? 'Kiralandı' : 'Satıldı';
 }
 
-export function imageUrl(name: string, thumb = false): string {
-  return `/data/img/${thumb ? thumbName(name) : name}`;
-}
-
-export function thumbName(name: string): string {
-  return name.replace(/\.(\w+)$/, '.t.$1');
+/** public/img klasöründeki bir fotoğrafın adresi */
+export function imageUrl(name: string): string {
+  return `${import.meta.env.BASE_URL}img/${encodeURIComponent(name)}`;
 }
 
 /** "Diğer" kategorisinde yöneticinin yazdığı adı gösterir. */

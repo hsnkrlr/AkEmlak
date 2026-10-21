@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { SITE } from '../config';
-import { publicListings, usePublished } from '../data/published';
+import { publicListings, useListings } from '../data/listings';
 import { generalWhatsappLink } from '../lib/whatsapp';
 import { usePageMeta } from '../lib/usePageMeta';
 import { IconChat, IconSearch, IconShield, IconSpark, IconWhatsapp } from '../components/Icons';
@@ -42,7 +42,7 @@ export default function Home() {
     `${SITE.name} | Satılık ve Kiralık Emlak ve Araç İlanları`,
     `${SITE.name} güncel satılık ve kiralık daire, villa, arsa, iş yeri ve araç ilanları. WhatsApp ile hemen bilgi alın.`,
   );
-  const state = usePublished();
+  const state = useListings();
   const all = useMemo(() => publicListings(state), [state]);
   const [q, setQ] = useState('');
   const [deal, setDeal] = useState<DealType | ''>('');
@@ -117,10 +117,6 @@ export default function Home() {
               <strong>7/24</strong>
               <span>WhatsApp iletişim</span>
             </li>
-            <li>
-              <strong>%100</strong>
-              <span>doğrulanmış ilan</span>
-            </li>
           </ul>
         </div>
       </section>
@@ -174,13 +170,6 @@ export default function Home() {
             ))}
           </div>
         )}
-        {state.status === 'invalid' && (
-          <div className="empty warn">
-            <IconShield width={32} height={32} />
-            <h3>İlanlar güvenlik doğrulamasından geçemedi</h3>
-            <p>Güvenliğiniz için ilanlar şu anda gösterilmiyor. Lütfen bizimle doğrudan iletişime geçin.</p>
-          </div>
-        )}
         {state.status === 'error' && (
           <div className="empty">
             <h3>İlanlar yüklenemedi</h3>
@@ -215,8 +204,8 @@ export default function Home() {
             <span className="feature-ico">
               <IconShield />
             </span>
-            <h3>Doğrulanmış ilanlar</h3>
-            <p>Tüm ilanlar dijital imzalıdır; yalnızca {SITE.name} tarafından yayınlanan ilanlar sitede görünür.</p>
+            <h3>Güvenli iletişim</h3>
+            <p>Tüm ilanlar tek resmi WhatsApp hattımıza yönlenir; yer göstermeden kapora veya ön ödeme istemeyiz.</p>
           </div>
           <div className="feature">
             <span className="feature-ico">

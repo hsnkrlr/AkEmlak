@@ -1,3 +1,2 @@
-# Netlify / Cloudflare Pages: tüm adresler tek sayfa uygulamasına yönlenir
-/data/*  /data/:splat  200
-/*       /index.html   200
+# Netlify / Cloudflare Pages: mevcut dosyalar olduğu gibi sunulur, diğer adresler tek sayfa uygulamasına yönlenir
+/*  /index.html  200

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { SITE } from '../config';
-import { publicListings, usePublished } from '../data/published';
+import { publicListings, useListings } from '../data/listings';
 import { categoryLabel, fmtInt, formatDate, formatLocation, formatPrice, groupOf, soldLabel } from '../lib/format';
 import { usePageMeta } from '../lib/usePageMeta';
 import { listingUrl, listingWhatsappLink } from '../lib/whatsapp';
@@ -13,7 +13,7 @@ import { DEAL_LABEL, type Listing } from '../types';
 
 export default function Detail() {
   const { slug } = useParams();
-  const state = usePublished();
+  const state = useListings();
   const all = publicListings(state);
   const listing = all.find((l) => l.slug === slug);
 
@@ -37,7 +37,7 @@ export default function Detail() {
       <PublicLayout>
         <div className="container section">
           <div className="empty">
-            <h3>{state.status === 'invalid' ? 'İlan güvenlik doğrulamasından geçemedi' : 'İlan bulunamadı'}</h3>
+            <h3>İlan bulunamadı</h3>
             <p>Bu ilan yayından kaldırılmış ya da bağlantı hatalı olabilir.</p>
             <Link className="btn btn-primary" to="/">
               Tüm ilanlara dön

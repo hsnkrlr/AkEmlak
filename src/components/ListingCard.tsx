@@ -9,7 +9,7 @@ export function ListingCard({ listing: l, to }: { listing: Listing; to?: string 
   return (
     <Link to={to ?? `/detay/${l.slug}`} className={`card ${sold ? 'is-sold' : ''}`}>
       <div className="card-media">
-        <Photo name={l.images[0]} thumb alt={l.title} category={l.category} />
+        <Photo name={l.images[0]} alt={l.title} category={l.category} />
         <div className="card-badges">
           <span className={`badge badge-${l.dealType}`}>{DEAL_LABEL[l.dealType]}</span>
           {l.featured && !sold && <span className="badge badge-featured">Fırsat</span>}

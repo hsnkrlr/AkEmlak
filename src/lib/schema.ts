@@ -1,77 +1,122 @@
+import { SITE } from '../config';
 import type { Category, Currency, DealType, Listing, ListingStatus } from '../types';
-import { CATEGORY_LABEL, DEAL_LABEL, STATUS_LABEL } from '../types';
-import { LIMITS } from '../config';
+import { CATEGORY_LABEL } from '../types';
+import { slugify } from './format';
 
-/** Görsel adları içerik özetidir; yol (../) veya dış adres içeremez. */
-export const IMAGE_NAME_RE = /^[a-f0-9]{64}\.(webp|jpg|png)$/;
-const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+/**
+ * public/data.json içindeki ilanları okur. Dosya elle düzenlendiği için alan adları Türkçedir;
+ * eksik alanlar boş kabul edilir, yalnızca "baslik" zorunludur. Hatalı kayıtlar siteyi bozmaz,
+ * atlanır ve tarayıcı konsoluna nedeni yazılır.
+ */
+
+const MAX_IMAGES = 10;
+/** Fotoğraflar yalnızca public/img klasöründen okunur (dış adres veya ../ yolu kabul edilmez). */
+const IMAGE_NAME_RE = /^[A-Za-z0-9ÇĞİÖŞÜçğıöşü][A-Za-z0-9ÇĞİÖŞÜçğıöşü ._-]*\.(jpe?g|png|webp|avif)$/i;
+
+const DEALS: Record<string, DealType> = { satilik: 'satilik', 'satılık': 'satilik', kiralik: 'kiralik', 'kiralık': 'kiralik' };
+const STATUSES: Record<string, ListingStatus> = {
+  yayinda: 'yayinda',
+  'yayında': 'yayinda',
+  satildi: 'satildi',
+  'satıldı': 'satildi',
+  kiralandi: 'satildi',
+  'kiralandı': 'satildi',
+  gizli: 'taslak',
+  taslak: 'taslak',
+};
 
 function str(v: unknown, max: number): string {
+  if (typeof v === 'number') v = String(v);
   return typeof v === 'string' ? v.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').trim().slice(0, max) : '';
 }
 
+/** Sayı ya da "8.000" / "8000" gibi yazılmış metni sayıya çevirir; boşsa null. */
 function num(v: unknown, max = 1e12): number | null {
+  if (typeof v === 'string') v = v.trim() === '' ? null : Number(v.replace(/\./g, '').replace(',', '.'));
   if (typeof v !== 'number' || !Number.isFinite(v) || v < 0 || v > max) return null;
   return v;
 }
 
-function oneOf<T extends string>(v: unknown, allowed: Record<T, string>, fallback: T): T {
-  return typeof v === 'string' && v in allowed ? (v as T) : fallback;
+const key = (v: unknown) => str(v, 40).toLocaleLowerCase('tr-TR');
+
+function date(v: unknown, fallback: string): string {
+  const d = new Date(str(v, 40));
+  return Number.isNaN(d.getTime()) ? fallback : d.toISOString();
 }
 
-/**
- * Dışarıdan gelen (yayındaki JSON, içe aktarılan dosya) her ilanı katı biçimde doğrular.
- * Beklenmeyen alanlar atılır, metinler kısaltılır; şüpheli kayıtlar tamamen reddedilir.
- */
-export function sanitizeListing(raw: unknown): Listing | null {
-  if (!raw || typeof raw !== 'object') return null;
+export function parseIlan(raw: unknown, index: number): Listing | null {
+  const where = `data.json → ${index + 1}. ilan`;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    console.warn(`${where}: { ... } biçiminde olmalı, atlandı.`);
+    return null;
+  }
   const r = raw as Record<string, unknown>;
-  const id = str(r.id, 64);
-  const slug = str(r.slug, 90);
-  const title = str(r.title, 140);
-  const price = num(r.price);
-  if (!id || !SLUG_RE.test(slug) || !title || price === null) return null;
-
-  const images = Array.isArray(r.images)
-    ? r.images.filter((x): x is string => typeof x === 'string' && IMAGE_NAME_RE.test(x)).slice(0, LIMITS.maxImagesPerListing)
-    : [];
-  const features = Array.isArray(r.features)
-    ? r.features.map((x) => str(x, 60)).filter(Boolean).slice(0, 40)
-    : [];
+  const title = str(r.baslik, 140);
+  if (!title) {
+    console.warn(`${where}: "baslik" yazılmamış, atlandı.`);
+    return null;
+  }
+  const category = key(r.kategori);
+  if (category && !(category in CATEGORY_LABEL)) console.warn(`${where}: bilinmeyen kategori "${category}", "diger" sayıldı.`);
+  const photos = Array.isArray(r.fotograflar) ? r.fotograflar.map((x) => str(x, 120)) : [];
+  const badPhotos = photos.filter((p) => !IMAGE_NAME_RE.test(p));
+  if (badPhotos.length) console.warn(`${where}: geçersiz fotoğraf adı atlandı: ${badPhotos.join(', ')}`);
+  const created = date(r.tarih, '');
+  const code = str(r.ilanNo, 20);
+  const slug = slugify(str(r.baglanti, 90) || title);
 
   return {
-    id,
-    code: str(r.code, 20),
+    id: code || slug || `ilan-${index + 1}`,
+    code,
     slug,
     title,
-    dealType: oneOf<DealType>(r.dealType, DEAL_LABEL, 'satilik'),
-    category: oneOf<Category>(r.category, CATEGORY_LABEL, 'daire'),
-    price,
-    currency: oneOf<Currency>(r.currency, { TRY: '', USD: '', EUR: '' }, 'TRY'),
-    city: str(r.city, 60),
-    district: str(r.district, 60),
-    neighborhood: str(r.neighborhood, 80),
-    grossM2: num(r.grossM2, 1e7),
+    dealType: DEALS[key(r.tur)] ?? 'satilik',
+    category: (category in CATEGORY_LABEL ? category : category ? 'diger' : 'daire') as Category,
+    categoryOther: category === 'diger' || (category && !(category in CATEGORY_LABEL)) ? str(r.kategoriAdi, 40) || str(r.kategori, 40) : '',
+    price: num(r.fiyat) ?? 0,
+    currency: (['TRY', 'USD', 'EUR'].includes(str(r.paraBirimi, 3).toUpperCase()) ? str(r.paraBirimi, 3).toUpperCase() : 'TRY') as Currency,
+    city: str(r.il, 60) || SITE.city,
+    district: str(r.ilce, 60),
+    neighborhood: str(r.mahalle, 80),
+    grossM2: num(r.brutM2, 1e7),
     netM2: num(r.netM2, 1e7),
-    rooms: str(r.rooms, 20),
-    bathrooms: num(r.bathrooms, 50),
-    floor: str(r.floor, 30),
-    buildingAge: num(r.buildingAge, 300),
-    heating: str(r.heating, 40),
-    brand: str(r.brand, 40),
+    rooms: str(r.odaSayisi, 20),
+    bathrooms: num(r.banyoSayisi, 50),
+    floor: str(r.kat, 30),
+    buildingAge: num(r.binaYasi, 300),
+    heating: str(r.isitma, 40),
+    brand: str(r.marka, 40),
     model: str(r.model, 80),
-    modelYear: num(r.modelYear, 2100),
+    modelYear: num(r.modelYili, 2100),
     km: num(r.km, 1e7),
-    fuel: str(r.fuel, 30),
-    gear: str(r.gear, 30),
-    color: str(r.color, 30),
-    categoryOther: str(r.categoryOther, 40),
-    features,
-    description: str(r.description, 6000),
-    images,
-    status: oneOf<ListingStatus>(r.status, STATUS_LABEL, 'taslak'),
-    featured: r.featured === true,
-    createdAt: str(r.createdAt, 40),
-    updatedAt: str(r.updatedAt, 40),
+    fuel: str(r.yakit, 30),
+    gear: str(r.vites, 30),
+    color: str(r.renk, 30),
+    features: Array.isArray(r.ozellikler) ? r.ozellikler.map((x) => str(x, 60)).filter(Boolean).slice(0, 40) : [],
+    description: str(r.aciklama, 6000),
+    images: photos.filter((p) => IMAGE_NAME_RE.test(p)).slice(0, MAX_IMAGES),
+    status: STATUSES[key(r.durum)] ?? 'yayinda',
+    featured: r.firsat === true,
+    createdAt: created,
+    updatedAt: created,
   };
+}
+
+/** Tüm dosyayı okur; aynı adrese (slug) düşen ilanlara -2, -3 eki verir. */
+export function parseData(doc: unknown): Listing[] {
+  const list = doc && typeof doc === 'object' && Array.isArray((doc as { ilanlar?: unknown }).ilanlar) ? (doc as { ilanlar: unknown[] }).ilanlar : null;
+  if (!list) {
+    console.warn('data.json: { "ilanlar": [ ... ] } biçiminde olmalı.');
+    return [];
+  }
+  const seen = new Set<string>();
+  return list
+    .map(parseIlan)
+    .filter((l): l is Listing => l !== null)
+    .map((l) => {
+      let slug = l.slug;
+      for (let i = 2; seen.has(slug); i++) slug = `${l.slug}-${i}`;
+      seen.add(slug);
+      return slug === l.slug ? l : { ...l, slug, id: l.code || slug };
+    });
 }

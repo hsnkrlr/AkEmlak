@@ -41,25 +41,12 @@ export interface Listing {
   categoryOther: string;
   features: string[];
   description: string;
-  /** Görsel dosya adları: <sha256>.<uzantı> */
+  /** public/img klasöründeki fotoğraf dosya adları */
   images: string[];
   status: ListingStatus;
   featured: boolean;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface PublishedPayload {
-  version: 1;
-  publishedAt: string;
-  listings: Listing[];
-}
-
-export interface SignedDocument {
-  format: 'akemlak-signed-v1';
-  alg: 'ES256';
-  payload: string;
-  signature: string;
 }
 
 export const DEAL_LABEL: Record<DealType, string> = {

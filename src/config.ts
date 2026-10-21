@@ -1,6 +1,6 @@
 /**
- * İşletme bilgileri. WhatsApp numarası bilerek veri dosyasında değil kodda tutulur:
- * listings.json ele geçirilse bile müşteriler sahte bir numaraya yönlendirilemez.
+ * İşletme bilgileri. WhatsApp numarası bilerek ilan dosyasında (public/data.json) değil kodda tutulur;
+ * böylece tüm ilanlar her zaman resmi numaraya yönlendirir.
  */
 export const SITE = {
   name: 'Ak Emlak',
@@ -14,34 +14,6 @@ export const SITE = {
   /** Boş bırakılırsa tarayıcıdaki alan adı kullanılır */
   siteUrl: '',
 } as const;
-
-/**
- * Yayınla düğmesi ilanları bu GitHub reposuna kaydeder; Vercel değişikliği görüp siteyi
- * otomatik günceller. `branch` boşsa reponun varsayılan dalı kullanılır.
- */
-export const GITHUB = {
-  owner: 'hsnkrlr',
-  repo: 'AkEmlak',
-  branch: '',
-  dataDir: 'public/data',
-} as const;
-
-export const LIMITS = {
-  maxImagesPerListing: 10,
-  maxImageInputBytes: 15 * 1024 * 1024,
-  imageMaxSide: 1600,
-  thumbMaxSide: 640,
-} as const;
-
-export const AUTH_POLICY = {
-  sessionMs: 15 * 60 * 1000,
-  failWindowMs: 10 * 60 * 1000,
-  maxFails: 3,
-} as const;
-
-export function isWhatsappConfigured(): boolean {
-  return /^[1-9]\d{9,14}$/.test(SITE.whatsappNumber) && !/^90500000000/.test(SITE.whatsappNumber);
-}
 
 export function siteOrigin(): string {
   return (SITE.siteUrl || window.location.origin).replace(/\/+$/, '');

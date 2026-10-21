@@ -1,0 +1,52 @@
+{
+  "ilanlar": [
+    {
+      "ilanNo": "AK-10006",
+      "baslik": "Esenyurt Mahallesi'nde Camiye Yakın Kiralık Müstakil Ev",
+      "tur": "kiralik",
+      "kategori": "mustakil",
+      "fiyat": 8000,
+      "il": "Gaziantep",
+      "ilce": "Nurdağı",
+      "mahalle": "Esenyurt Mahallesi",
+      "brutM2": null,
+      "netM2": null,
+      "odaSayisi": "",
+      "banyoSayisi": null,
+      "kat": "",
+      "binaYasi": null,
+      "isitma": "",
+      "ozellikler": ["Camiye Çok Yakın", "Müstakil"],
+      "aciklama": "Nurdağı Esenyurt Mahallesi'nde, camiye çok yakın konumda kiralık müstakil ev. Aylık kira 8.000 TL.\n\nOda sayısı, metrekare gibi detaylar ve yer görme randevusu için WhatsApp'tan bize yazabilirsiniz.",
+      "fotograflar": [],
+      "durum": "yayinda",
+      "firsat": false,
+      "tarih": "2026-10-21",
+      "baglanti": "nurdagi-esenyurt-mahallesi-camiye-yakin-kiralik-mustakil-ev"
+    },
+    {
+      "ilanNo": "AK-10007",
+      "baslik": "Bahçelievler TOKİ Konutlarında Zemin Kat Kiralık Daire",
+      "tur": "kiralik",
+      "kategori": "daire",
+      "fiyat": 0,
+      "il": "Gaziantep",
+      "ilce": "Nurdağı",
+      "mahalle": "Bahçelievler Mahallesi",
+      "brutM2": null,
+      "netM2": null,
+      "odaSayisi": "",
+      "banyoSayisi": null,
+      "kat": "Zemin Kat",
+      "binaYasi": null,
+      "isitma": "",
+      "ozellikler": ["TOKİ Konutu", "Zemin Kat"],
+      "aciklama": "Nurdağı Bahçelievler Mahallesi TOKİ konutlarında zemin kat kiralık daire.\n\nKira bedeli, oda sayısı ve diğer detaylar için WhatsApp'tan bize yazabilirsiniz.",
+      "fotograflar": [],
+      "durum": "yayinda",
+      "firsat": false,
+      "tarih": "2026-10-21",
+      "baglanti": "nurdagi-bahcelievler-toki-zemin-kat-kiralik-daire"
+    }
+  ]
+}

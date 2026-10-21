@@ -81,7 +81,7 @@ export function Gallery({ listing }: { listing: Listing }) {
               onClick={() => setIndex(i)}
               aria-label={`Fotoğraf ${i + 1}`}
             >
-              <Photo name={name} thumb alt="" />
+              <Photo name={name} alt="" />
             </button>
           ))}
         </div>
