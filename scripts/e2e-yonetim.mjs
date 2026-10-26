@@ -134,6 +134,9 @@ async function sayfa(email, dogrulanmis = true) {
   await page.goto(ADMIN);
   await page.waitForSelector('text=Google ile giriş yap');
   await page.screenshot({ path: join(SHOTS, '1-giris.png') });
+  if (!(await page.evaluate(() => typeof window.__testGiris === 'function'))) {
+    throw new Error('dist/ emülatör derlemesi değil. Önce: VITE_FIREBASE_EMULATOR=1 npm run build');
+  }
   if (email) {
     await page.evaluate(([e, v]) => window.__testGiris(e, v), [email, dogrulanmis]);
     await page.waitForSelector('.y-kabuk, h1:has-text("yetkisi yok")', { timeout: 20000 });
