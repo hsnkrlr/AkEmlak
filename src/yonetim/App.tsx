@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import BasvuruDetay from './basvurular/Detay';
+import BasvuruListesi from './basvurular/Liste';
 import { Giris, Yetkisiz } from './Giris';
 import { IkonArti, IkonAyar, IkonEv, IkonGelen } from './ikonlar';
 import { useOturum, YetkiliBaglami } from './oturum';
@@ -64,9 +66,9 @@ function Ekran({ rota }: { rota: Rota }) {
     case 'ayarlar':
       return <Hazirlaniyor baslik="Ayarlar" />;
     case 'basvuru':
-      return <Hazirlaniyor baslik="Başvuru" />;
+      return <BasvuruDetay key={rota.id} id={rota.id} />;
     default:
-      return <Hazirlaniyor baslik="Başvurular" />;
+      return <BasvuruListesi />;
   }
 }
 
