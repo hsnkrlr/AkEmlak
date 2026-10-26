@@ -99,3 +99,14 @@ test('geçersiz anahtar anahtar hatası verir', async () => {
   const g = sahteGithub({ ilkCevap: 401 });
   await assert.rejects(depo(g.fetchFn).oku(), (e: unknown) => e instanceof GithubHatasi && e.kod === 'anahtar' && /GitHub anahtarının süresi dolmuş veya yetkisi yok/.test(e.message));
 });
+
+test('commit mesajı, hazırlık sonrası belirlenen ilan numarasıyla yazılabilir', async () => {
+  const g = sahteGithub();
+  let no = '';
+  await depo(g.fetchFn).yaz(async (veri) => {
+    no = 'AK-10008';
+    return { veri, ekle: [], sil: [] };
+  }, () => `Yönetim: ${no} eklendi (a@b.co)`);
+  const commit = g.istekler.find((i) => i.path.endsWith('/git/commits') && i.method === 'POST')!.body!;
+  assert.equal(commit.message, 'Yönetim: AK-10008 eklendi (a@b.co)');
+});

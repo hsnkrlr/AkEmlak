@@ -4,6 +4,7 @@
  *  basvuruKontrolVeBildirim : yeni başvuruda fotoğrafları doğrular, şüpheli gönderimi işaretler,
  *                             alıcı listesine e-posta (fotoğraflar ekli) gönderir.
  *  gunlukTemizlik           : 2 yıldan eski başvuruları ve başvuruya bağlanmamış fotoğrafları her gece siler.
+ *  ilanlariGetir, ilanKaydet, ilanIslem : yönetim uygulaması (bkz. yonetim.ts)
  *
  * Ayarlar Firestore'da `ayarlar/bildirim` belgesindedir (yalnızca konsoldan düzenlenir):
  *   { alicilar: ["a@gmail.com", "b@gmail.com"], gonderen: "gonderen@gmail.com" }
@@ -18,6 +19,9 @@ import { initializeApp } from 'firebase-admin/app';
 import { FieldValue, Timestamp, getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import nodemailer from 'nodemailer';
+import { isImage } from './resim';
+
+export * from './yonetim';
 
 setGlobalOptions({ region: 'europe-west3', maxInstances: 3 });
 initializeApp();
@@ -51,13 +55,6 @@ const MAX_ATTACH_BYTES = 18 * 1024 * 1024;
 
 const esc = (v: unknown) =>
   String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
-
-/** Gerçek dosya imzası (magic bytes): JPEG veya WEBP */
-function isImage(buf: Buffer): boolean {
-  const jpeg = buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff;
-  const webp = buf.subarray(0, 4).toString('ascii') === 'RIFF' && buf.subarray(8, 12).toString('ascii') === 'WEBP';
-  return jpeg || webp;
-}
 
 /**
  * Ayrıntı alanlarının tür/uzunluk kontrolü (Firestore kurallarındaki ifade sınırı nedeniyle burada yapılır).
@@ -230,7 +227,7 @@ export const basvuruKontrolVeBildirim = onDocumentCreated(
 /**
  * Her gece:
  *  - 2 yıldan eski başvuruları fotoğraflarıyla birlikte siler (KVKK aydınlatma metnindeki saklama süresi),
- *  - yüklenip başvuruya bağlanmamış (24 saatten eski) fotoğrafları siler.
+ *  - yüklenip başvuruya bağlanmamış (24 saatten eski) fotoğrafları ve yönetimden yüklenip yayınlanmamış fotoğrafları siler.
  */
 export const gunlukTemizlik = onSchedule({ schedule: '0 4 * * *', timeZone: 'Europe/Istanbul', timeoutSeconds: 300 }, async () => {
   const db = getFirestore();
@@ -253,6 +250,15 @@ export const gunlukTemizlik = onSchedule({ schedule: '0 4 * * *', timeZone: 'Eur
   for (const f of files) {
     const created = Date.parse(String(f.metadata.timeCreated ?? ''));
     if (!referenced.has(f.name) && created && created < cutoff) {
+      await f.delete().catch(() => undefined);
+      orphans++;
+    }
+  }
+  // Yönetim uygulamasından yüklenip ilana dönüşmemiş (yarıda kalmış) fotoğraflar
+  const [uploads] = await bucket.getFiles({ prefix: 'yonetim/' });
+  for (const f of uploads) {
+    const created = Date.parse(String(f.metadata.timeCreated ?? ''));
+    if (created && created < cutoff) {
       await f.delete().catch(() => undefined);
       orphans++;
     }

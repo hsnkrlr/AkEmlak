@@ -13,7 +13,8 @@ export interface Hazirlik {
 
 export interface Depo {
   oku(): Promise<{ veri: DataJson; commit: string }>;
-  yaz(hazirla: (veri: DataJson) => Promise<Hazirlik>, mesaj: string): Promise<{ commit: string; veri: DataJson }>;
+  /** mesaj bir fonksiyonsa hazırlıktan sonra çağrılır (ör. yeni ilan numarası o anda belli olur) */
+  yaz(hazirla: (veri: DataJson) => Promise<Hazirlik>, mesaj: string | (() => string)): Promise<{ commit: string; veri: DataJson }>;
 }
 
 export class GithubHatasi extends Error {
@@ -96,7 +97,7 @@ export function depoOlustur(o: {
         tree.push({ path: VERI_YOLU, mode: '100644', type: 'blob', sha: await blob(Buffer.from(o.yaziyaDok(h.veri), 'utf8')) });
         for (const yol of h.sil) tree.push({ path: yol, mode: '100644', type: 'blob', sha: null });
         const t = await json<{ sha: string }>('POST', '/git/trees', { base_tree: mevcut.tree, tree });
-        const c = await json<{ sha: string }>('POST', '/git/commits', { message: mesaj, tree: t.sha, parents: [mevcut.commit] });
+        const c = await json<{ sha: string }>('POST', '/git/commits', { message: typeof mesaj === 'function' ? mesaj() : mesaj, tree: t.sha, parents: [mevcut.commit] });
         const res = await istek('PATCH', `/git/refs/${ref}`, { sha: c.sha, force: false });
         if (res.ok) return { commit: c.sha, veri: h.veri };
         if (res.status !== 422 && res.status !== 409) throw new GithubHatasi('diger', `GitHub dalı güncellenemedi (${res.status}).`);
