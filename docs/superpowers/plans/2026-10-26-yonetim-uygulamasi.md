@@ -37,7 +37,7 @@
 
 ---
 
-### Görev 1: İlan verisi mantığı (`functions/src/ilanlar.ts`)
+### Task 1: İlan verisi mantığı (`functions/src/ilanlar.ts`)
 
 **Files:**
 - Create: `functions/src/ilanlar.ts`
@@ -74,7 +74,7 @@
 - [ ] **Step 4:** `cd functions && node --test test/` → PASS; `npm run typecheck` temiz.
 - [ ] **Step 5:** Commit `Yönetim: ilan verisi mantığı ve testleri`.
 
-### Görev 2: GitHub yazıcı (`functions/src/github.ts`)
+### Task 2: GitHub yazıcı (`functions/src/github.ts`)
 
 **Files:**
 - Create: `functions/src/github.ts`
@@ -111,7 +111,7 @@ Hata durumları:
 - [ ] **Step 4:** Testler PASS, typecheck temiz.
 - [ ] **Step 5:** Commit `Yönetim: GitHub'a tek commit ile yazma`.
 
-### Görev 3: Yetki, fotoğraf işleme ve callable fonksiyonlar
+### Task 3: Yetki, fotoğraf işleme ve callable fonksiyonlar
 
 **Files:**
 - Create: `functions/src/yetki.ts`, `functions/src/resim.ts`, `functions/src/yonetim.ts`
@@ -148,7 +148,7 @@ Kurallar:
 - [ ] **Step 4:** `npm test` PASS. `npm run build` temiz. Emülatörde `ilanlariGetir`'i yetkisiz bir Auth emülatörü kullanıcısıyla çağır; `permission-denied` dönmeli.
 - [ ] **Step 5:** Commit `Yönetim: yetki kontrolü, fotoğraf işleme ve ilan fonksiyonları`.
 
-### Görev 4: Güvenlik kuralları ve indeksler
+### Task 4: Güvenlik kuralları ve indeksler
 
 **Files:**
 - Modify: `firebase/firestore.rules`, `firebase/storage.rules`, `firebase/firestore.indexes.json`
@@ -177,7 +177,7 @@ Kurallar:
 - [ ] **Step 4:** `npm run test:rules` → tümü PASS. İfade sınırı uyarısı olmamalı.
 - [ ] **Step 5:** Commit `Yönetim: güvenlik kuralları ve testleri`.
 
-### Görev 5: Bildirim (FCM) gönderimi
+### Task 5: Bildirim (FCM) gönderimi
 
 **Files:**
 - Create: `functions/src/push.ts`
@@ -199,7 +199,7 @@ Kurallar:
 - [ ] **Step 4:** `npm test` ve `npm run build` PASS.
 - [ ] **Step 5:** Commit `Yönetim: yeni başvuruda telefona bildirim`.
 
-### Görev 6: Yönetim derlemesi, PWA kabuğu ve yayın ayarları
+### Task 6: Yönetim derlemesi, PWA kabuğu ve yayın ayarları
 
 **Files:**
 - Create: `yonetim/index.html`, `public/yonetim/manifest.webmanifest`, `public/yonetim/sw.js`, `public/yonetim/icon-192.png`, `public/yonetim/icon-512.png`, `src/yonetim/main.tsx` (geçici "Yükleniyor")
@@ -229,7 +229,7 @@ Ayrıntılar:
   - `grep -c googletagmanager dist/yonetim/index.html` = 0.
 - [ ] **Step 3:** Commit `Yönetim: ayrı derleme, PWA kabuğu ve yayın ayarları`.
 
-### Görev 7: Oturum ve uygulama iskeleti
+### Task 7: Oturum ve uygulama iskeleti
 
 **Files:**
 - Create: `src/yonetim/firebase.ts`, `src/yonetim/oturum.ts`, `src/yonetim/router.ts`, `src/yonetim/App.tsx`, `src/yonetim/Giris.tsx`, `src/yonetim/yonetim.css`
@@ -251,7 +251,7 @@ Ayrıntılar:
 - [ ] **Step 2:** Bileşenleri yaz. Step 1'deki senaryo geçmeli; `npx tsc --noEmit -p .` temiz olmalı.
 - [ ] **Step 3:** Commit `Yönetim: Google ile giriş ve uygulama iskeleti`.
 
-### Görev 8: Başvurular, başvuru detayı ve notlar
+### Task 8: Başvurular, başvuru detayı ve notlar
 
 **Files:**
 - Create: `src/yonetim/basvurular/Liste.tsx`, `src/yonetim/basvurular/Detay.tsx`, `src/yonetim/basvurular/Notlar.tsx`, `src/yonetim/basvurular/veri.ts`, `src/yonetim/donustur.ts`, `src/yonetim/donustur.test.ts`
@@ -333,7 +333,7 @@ Ayrıntılar:
   - Ekran görüntüleri alınır.
 - [ ] **Step 7:** Commit `Yönetim: başvuru listesi, detay ve notlar`.
 
-### Görev 9: İlan düzenleyici ve İlanlar ekranı
+### Task 9: İlan düzenleyici ve İlanlar ekranı
 
 **Files:**
 - Create: `src/yonetim/ilanlar/Duzenleyici.tsx`, `src/yonetim/ilanlar/Liste.tsx`, `src/yonetim/ilanlar/api.ts`, `src/yonetim/ilanlar/Fotograflar.tsx`
@@ -362,7 +362,7 @@ Ayrıntılar:
 - [ ] **Step 2:** Yaz. Senaryo geçmeli, typecheck temiz olmalı.
 - [ ] **Step 3:** Commit `Yönetim: ilan düzenleyici ve ilan yönetimi`.
 
-### Görev 10: Ayarlar ve bildirim izni
+### Task 10: Ayarlar ve bildirim izni
 
 **Files:**
 - Create: `src/yonetim/Ayarlar.tsx`, `src/yonetim/bildirim.ts`
@@ -379,7 +379,7 @@ Ayrıntılar:
 - [ ] **Step 2:** Playwright (Chromium, izin verilmiş): `bildirimAc` sonrası Firestore emülatöründe cihaz belgesi oluşur; `bildirimKapat` sonrası silinir. FCM token'ı emülatörde gerçek alınamazsa `getToken` sarmalayıcısı test için `window.__testToken`'ı kullanır; bu yalnızca `VITE_FIREBASE_EMULATOR` derlemesinde etkin olur.
 - [ ] **Step 3:** Commit `Yönetim: ayarlar ve bildirim izni`.
 
-### Görev 11: Uçtan uca doğrulama
+### Task 11: Uçtan uca doğrulama
 
 **Files:**
 - Create: `scripts/e2e-yonetim.mjs` (emülatör + sahte GitHub + Playwright; Görev 7–10 senaryolarını sırayla çalıştırır)
@@ -392,7 +392,7 @@ Ayrıntılar:
 - [ ] **Step 3:** 390 px ekran görüntüleri: giriş, başvurular, detay, düzenleyici, ilanlar, ayarlar.
 - [ ] **Step 4:** Commit `Yönetim: uçtan uca test ve belgeler`.
 
-### Görev 12: Bulut kurulumu ve canlıya alma
+### Task 12: Bulut kurulumu ve canlıya alma
 
 **Files:**
 - Modify: `firebase.json` (gerekirse), `.firebaserc`
