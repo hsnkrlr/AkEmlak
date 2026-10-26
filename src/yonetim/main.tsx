@@ -1,8 +1,11 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import '@fontsource-variable/inter';
+import './yonetim.css';
+import App from './App';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <p style={{ padding: 24, fontFamily: 'system-ui' }}>Yükleniyor…</p>
+    <App />
   </StrictMode>,
 );

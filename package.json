@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p .",
     "test:rules": "node --test firebase/test/rules.test.mjs",
-    "emulators": "firebase emulators:start --project demo-akemlak --only auth,firestore,storage,functions"
+    "emulators": "firebase emulators:start --project demo-akemlak --only auth,firestore,storage,functions",
+    "test:unit": "node --test 'src/yonetim/*.test.ts'"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.1.0",
