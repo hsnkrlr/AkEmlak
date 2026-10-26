@@ -137,7 +137,38 @@ const PARAM_ALIASES: Record<string, keyof ApplyForm> = {
   telefon: 'phone', tel: 'phone', phone: 'phone',
   eposta: 'email', email: 'email',
   aciklama: 'description', description: 'description',
+  yas: 'buildingAge', binayasi: 'buildingAge', banyo: 'bathrooms', isitma: 'heating',
+  esyali: 'furnished', site: 'inSite', imar: 'zoning', tapu: 'deed', parsel: 'parcel', adaparsel: 'parcel',
+  marka: 'brand', model: 'model', yil: 'modelYear', km: 'km', yakit: 'fuel', vites: 'gear',
+  ozellik: 'features', ozellikler: 'features',
 };
+
+/** Form değiştikçe adres çubuğuna yazılan parametre adları (okurken yukarıdaki eş anlamlılar da kabul edilir) */
+const PARAM_NAMES: Partial<Record<keyof ApplyForm, string>> = {
+  type: 'tip', deal: 'tur', city: 'il', district: 'ilce', neighborhood: 'mahalle', address: 'adres', price: 'fiyat',
+  rooms: 'oda', grossM2: 'm2', netM2: 'net', floor: 'kat', buildingAge: 'yas', bathrooms: 'banyo', heating: 'isitma',
+  furnished: 'esyali', inSite: 'site', zoning: 'imar', deed: 'tapu', parcel: 'parsel',
+  brand: 'marka', model: 'model', modelYear: 'yil', km: 'km', fuel: 'yakit', gear: 'vites',
+  features: 'ozellik', description: 'aciklama',
+};
+const COMMON_PARAM_FIELDS: (keyof ApplyForm)[] = ['type', 'deal', 'city', 'district', 'neighborhood', 'address', 'price', 'features', 'description'];
+
+/**
+ * Formun güncel hâlini bağlantı parametresine çevirir: "?tip=mustakil&tur=kiralik&ilce=Nurdağı".
+ * Kişisel iletişim bilgileri (ad, telefon, e-posta) adrese yazılmaz: bağlantı paylaşıldığında
+ * ya da tarayıcı geçmişinde/Analytics'te görünmesinler. Yalnızca seçili tipe ait, doldurulmuş alanlar yazılır.
+ */
+export function formToParams(form: ApplyForm): string {
+  const params = new URLSearchParams();
+  const fields = [...COMMON_PARAM_FIELDS, ...(form.type ? FIELDS_BY_TYPE[form.type] : [])];
+  for (const key of fields) {
+    const name = PARAM_NAMES[key];
+    const value = key === 'features' ? form.features.join(',') : String(form[key]).trim();
+    if (name && value && value !== EMPTY_FORM[key]) params.set(name, value);
+  }
+  const q = params.toString();
+  return q ? `?${q}` : '';
+}
 
 const TYPE_ALIASES: Record<string, ApplyType> = {
   daire: 'daire', apartman: 'daire', mustakil: 'mustakil', 'müstakil': 'mustakil', ev: 'mustakil', villa: 'villa',
@@ -158,7 +189,7 @@ export function formFromParams(search: string, base: ApplyForm = EMPTY_FORM): Ap
   const form: ApplyForm = { ...base, features: [...base.features] };
   params.forEach((raw, k) => {
     const key = PARAM_ALIASES[k.toLocaleLowerCase('tr-TR')];
-    const value = raw.trim().slice(0, 300);
+    const value = raw.trim().slice(0, key === 'description' ? 3000 : 300);
     if (!key || !value) return;
     switch (key) {
       case 'type': {
@@ -182,10 +213,24 @@ export function formFromParams(search: string, base: ApplyForm = EMPTY_FORM): Ap
       case 'netM2':
         form[key] = value.replace(/\D/g, '').slice(0, 12);
         break;
+      case 'buildingAge':
+      case 'bathrooms':
+      case 'modelYear':
+      case 'km':
+        form[key] = value.replace(/\D/g, '').slice(0, 9);
+        break;
+      case 'furnished':
+      case 'inSite': {
+        const v = value.toLocaleLowerCase('tr-TR');
+        if (v.startsWith('e') || v === '1' || v === 'var') form[key] = 'evet';
+        if (v.startsWith('h') || v === '0' || v === 'yok') form[key] = 'hayir';
+        break;
+      }
       case 'phone':
         form.phone = phoneDigits(value);
         break;
       case 'features':
+        form.features = [...new Set(value.split(',').map((f) => f.trim().slice(0, 60)).filter(Boolean))].slice(0, 20);
         break;
       default:
         (form[key] as string) = value.slice(0, key === 'description' ? 3000 : 120);

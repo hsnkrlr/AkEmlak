@@ -4,7 +4,7 @@ import { SITE } from '../config';
 import { isFirebaseConfigured } from '../firebase/config';
 import type { ApplicationPayload } from '../firebase/client';
 import {
-  buildListing, buildSeller, clearHistory, EMPTY_FORM, FEATURE_SUGGESTIONS, FIELDS_BY_TYPE, formatPhone, formFromParams,
+  buildListing, buildSeller, clearHistory, EMPTY_FORM, FEATURE_SUGGESTIONS, FIELDS_BY_TYPE, formatPhone, formFromParams, formToParams,
   KVKK_VERSION, loadHistory, MAX_PHOTOS, OPTIONS, phoneDigits, preparePhoto, saveToHistory, TYPE_LABEL, TYPES, validate,
   type ApplyForm, type ApplyType, type Errors, type FieldKey, type PreparedPhoto, type StoredApplication,
 } from '../lib/apply';
@@ -129,6 +129,16 @@ export default function Apply() {
   useEffect(() => {
     setErrors((prev) => (Object.keys(prev).length ? validate(form, kvkk) : prev));
   }, [form, kvkk]);
+
+  // Form değiştikçe bağlantıyı güncelle: sayfa yenilenince ya da bağlantı paylaşılınca aynı bilgilerle açılır.
+  // Ad, telefon ve e-posta bağlantıya yazılmaz (bkz. formToParams).
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const url = location.pathname + formToParams(form) + window.location.hash;
+      if (url !== window.location.pathname + window.location.search + window.location.hash) replaceUrl(url);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [form, location.pathname, location.key]);
 
   // Firebase'i arka planda önceden yükle (izin verildiyse)
   useEffect(() => {
@@ -617,6 +627,15 @@ function ApplyHero() {
 
 const yn = (v: '' | 'evet' | 'hayir') => (v === 'evet' ? 'Evet' : v === 'hayir' ? 'Hayır' : '');
 const ny = (v: string): '' | 'evet' | 'hayir' => (v === 'Evet' ? 'evet' : v === 'Hayır' ? 'hayir' : '');
+
+/**
+ * Adres çubuğunu geçmişe kayıt eklemeden günceller. ga-init.js'in sakladığı özgün replaceState kullanılır;
+ * böylece Analytics her yazışta yeni sayfa görüntülemesi saymaz.
+ */
+function replaceUrl(url: string) {
+  const native = (window as Window & { akReplaceState?: History['replaceState'] }).akReplaceState ?? History.prototype.replaceState;
+  native.call(window.history, window.history.state, '', url);
+}
 
 /** Yeni başvuru: bağlantı parametreleri + önceki başvurudaki iletişim bilgileri (tekrar yazmamak için) */
 function initialForm(search: string, last?: StoredApplication): ApplyForm {

@@ -121,7 +121,9 @@ Site yayına girdikten sonra Google Search Console'a `https://alanadiniz/sitemap
 `/ilan-basvurusu` sayfasındaki form, başvuruları Firebase projesine (**akemlak-ilan**, Frankfurt / europe-west3) kaydeder.
 
 - **Zorunlu alanlar:** ilan tipi, ad soyad ve cep telefonu (`+90 5XX XXX XX XX`). Diğer alanlar tipe göre değişir ve isteğe bağlıdır.
-- **Bağlantıyla doldurma:** form bağlantı parametreleriyle doldurulmuş açılabilir, örneğin `/ilan-basvurusu?tip=mustakil&tur=kiralik&il=gaziantep&ilce=nurdagi&mahalle=esenyurt&fiyat=8000`. Desteklenen parametreler: `tip`, `tur`, `il`/`city`, `ilce`, `mahalle`, `adres`, `fiyat`, `oda`, `m2`, `net`, `kat`, `ad`, `telefon`, `eposta`, `aciklama`.
+- **Bağlantıyla doldurma:** form bağlantı parametreleriyle doldurulmuş açılabilir, örneğin `/ilan-basvurusu?tip=mustakil&tur=kiralik&il=gaziantep&ilce=nurdagi&mahalle=esenyurt&fiyat=8000`. Ziyaretçi formu doldurdukça bağlantı da kendiliğinden güncellenir; sayfa yenilense ya da bağlantı kopyalanıp paylaşılsa bile form aynı bilgilerle açılır. Ad, telefon ve e-posta güvenlik için bağlantıya yazılmaz (elle eklenen `ad`, `telefon`, `eposta` yine okunur).
+  - Parametreler: `tip`, `tur`, `il`, `ilce`, `mahalle`, `adres`, `fiyat`, `oda`, `m2`, `net`, `kat`, `yas`, `banyo`, `isitma`, `esyali` (evet/hayir), `site` (evet/hayir), `imar`, `tapu`, `parsel`, `marka`, `model`, `yil`, `km`, `yakit`, `vites`, `ozellik` (virgülle: `ozellik=Bahçe,Otopark`), `aciklama`, `ad`, `telefon`, `eposta`.
+  - `tip` değerleri: `daire`, `mustakil`, `villa`, `arsa`, `tarla` (bahçe), `isyeri`, `arac`, `diger`. `tur`: `satilik` / `kiralik`.
 - **Cihazdaki geçmiş:** Başvurular ziyaretçinin cihazında saklanır ("Başvurularım"). Düzenlenip tekrar gönderilen başvuru `resubmission` alanında önceki numara, ilk numara ve sürümle işaretlenir.
 - **Başvuruları görme:** Firebase konsolu → Firestore → `basvurular`. Fotoğraflar Storage → `basvurular/` altında. Her yeni başvuruda fotoğraflar ekli bir e-posta gelir.
 - **Bildirim alıcıları:** Firestore → `ayarlar/bildirim` belgesindeki `alicilar` listesi. Yeni adres eklemek için kod değiştirmek gerekmez.

@@ -2,6 +2,8 @@
 // Güvenlik politikası (CSP) satır içi betiğe izin vermediği için ayrı dosyadadır.
 (function () {
   var ID = 'G-D2F1KZ11MT';
+  // Başvuru formu bağlantıyı yazdıkça güncelliyor; Analytics'in bunu sayfa geçişi saymaması için özgün yöntem saklanır.
+  window.akReplaceState = History.prototype.replaceState;
   var loaded = false;
   window.dataLayer = window.dataLayer || [];
   window.gtag = function () {
