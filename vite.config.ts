@@ -32,15 +32,50 @@ const CSP = [
   "manifest-src 'self'",
 ].join('; ');
 
+/**
+ * Yönetim uygulaması (/yonetim) CSP'si: Analytics yok; Firebase'e ek olarak bildirim (FCM), Cloud Functions
+ * ve başvuru fotoğrafları (blob:) için izin. Google girişi aynı alan adındaki /__/auth/ sayfasını iframe'de açar.
+ */
+const ADMIN_CSP = [
+  "default-src 'self'",
+  "script-src 'self' https://www.google.com https://www.gstatic.com https://apis.google.com",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "font-src 'self' data:",
+  [
+    "connect-src 'self'",
+    ...FIREBASE_CONNECT,
+    'https://fcmregistrations.googleapis.com',
+    'https://firebaseinstallations.googleapis.com',
+    'https://europe-west3-akemlak-ilan.cloudfunctions.net',
+    ...EMULATOR_CONNECT,
+    ...(process.env.VITE_FIREBASE_EMULATOR === '1' ? ['http://127.0.0.1:5001'] : []),
+  ].join(' '),
+  "object-src 'none'",
+  "base-uri 'none'",
+  "form-action 'self'",
+  "frame-src 'self' https://www.google.com https://recaptcha.google.com" + (process.env.VITE_FIREBASE_EMULATOR === '1' ? ' http://127.0.0.1:9099' : ''),
+  "worker-src 'self'",
+  "manifest-src 'self'",
+].join('; ');
+
 // Geliştirme sunucusu satır içi betik kullandığı için CSP yalnızca derlemede eklenir.
 const cspPlugin = (): Plugin => ({
   name: 'akemlak-csp',
   apply: 'build',
-  transformIndexHtml: (html) =>
-    html.replace('<meta charset="UTF-8" />', `<meta charset="UTF-8" />\n    <meta http-equiv="Content-Security-Policy" content="${CSP}" />`),
+  transformIndexHtml: (html, ctx) =>
+    html.replace(
+      '<meta charset="UTF-8" />',
+      `<meta charset="UTF-8" />\n    <meta http-equiv="Content-Security-Policy" content="${ctx.path.startsWith('/yonetim/') ? ADMIN_CSP : CSP}" />`,
+    ),
 });
 
 export default defineConfig({
   plugins: [react(), cspPlugin(), seoPrerender()],
-  build: { sourcemap: false, target: 'es2021' },
+  build: {
+    sourcemap: false,
+    target: 'es2021',
+    // Yönetim uygulaması ayrı giriş noktasıdır; kodu ziyaretçi paketine girmez.
+    rollupOptions: { input: { main: 'index.html', yonetim: 'yonetim/index.html' } },
+  },
 });

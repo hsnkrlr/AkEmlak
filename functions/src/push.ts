@@ -29,6 +29,7 @@ export async function bildirimGonder(o: {
   const mesajlar = tokenlar.map((t) => ({
     token: t.token,
     notification: { title, body },
+    data: { link, basvuruId: basvuru.id },
     webpush: { fcmOptions: { link }, notification: { icon: '/yonetim/icon-192.png', tag: basvuru.id } },
   }));
   const { responses } = await o.gonder(mesajlar);

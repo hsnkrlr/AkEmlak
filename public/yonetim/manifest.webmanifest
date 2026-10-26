@@ -1,0 +1,17 @@
+{
+  "name": "Ak Emlak Yönetim",
+  "short_name": "AK Yönetim",
+  "description": "Ak Emlak ilan başvuruları ve ilan yönetimi",
+  "lang": "tr",
+  "id": "/yonetim/",
+  "start_url": "/yonetim/",
+  "scope": "/yonetim/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    { "src": "/yonetim/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/yonetim/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
