@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import Ayarlar from './Ayarlar';
 import BasvuruDetay from './basvurular/Detay';
 import BasvuruListesi from './basvurular/Liste';
 import Duzenleyici from './ilanlar/Duzenleyici';
@@ -68,18 +69,10 @@ function Ekran({ rota }: { rota: Rota }) {
     case 'basvuruIlan':
       return <Duzenleyici key={rota.id} mod="basvuru" basvuruId={rota.id} />;
     case 'ayarlar':
-      return <Hazirlaniyor baslik="Ayarlar" />;
+      return <Ayarlar />;
     case 'basvuru':
       return <BasvuruDetay key={rota.id} id={rota.id} />;
     default:
       return <BasvuruListesi />;
   }
-}
-
-function Hazirlaniyor({ baslik }: { baslik: string }) {
-  return (
-    <section>
-      <h1 className="y-baslik">{baslik}</h1>
-    </section>
-  );
 }
