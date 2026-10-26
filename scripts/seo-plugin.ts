@@ -193,7 +193,7 @@ function homeLd(listings: Listing[], origin: string): unknown[] {
       telephone: `+${SITE.whatsappNumber}`,
       areaServed: areas.map((name) => ({ '@type': 'Place', name })),
       address: { '@type': 'PostalAddress', addressRegion: SITE.city, addressCountry: 'TR' },
-      ...(origin ? { image: `${origin}/og.jpg`, logo: `${origin}/favicon.svg` } : {}),
+      ...(origin ? { image: `${origin}/og.jpg`, logo: `${origin}/logo.png` } : {}),
     },
     { '@context': 'https://schema.org', '@type': 'WebSite', name: SITE.name, url: abs(origin, '/'), inLanguage: 'tr-TR' },
     {

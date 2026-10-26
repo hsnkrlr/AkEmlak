@@ -273,31 +273,13 @@ code,
   color: var(--ink);
   text-decoration: none !important;
 }
-.logo-mark {
-  display: grid;
-  place-items: center;
-  width: 40px;
+.logo img {
+  display: block;
+  height: 44px;
+  width: auto;
+}
+.site-footer .logo img {
   height: 40px;
-  border-radius: 12px;
-  background: var(--grad-primary);
-  box-shadow: 0 4px 12px rgb(15 118 110 / 0.3);
-}
-.logo-mark svg {
-  width: 24px;
-  height: 24px;
-  fill: none;
-  stroke: #fff;
-  stroke-width: 2.4;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.logo-text {
-  font-size: 1.3rem;
-  letter-spacing: -0.02em;
-  font-weight: 500;
-}
-.logo-text strong {
-  font-weight: 800;
 }
 
 .site-footer {
@@ -1643,10 +1625,10 @@ textarea {
   }
 }
 
-.logo-text {
-  white-space: nowrap;
-}
 @media (max-width: 440px) {
+  .logo img {
+    height: 36px;
+  }
   .header-nav {
     gap: 8px;
   }

@@ -8,15 +8,7 @@ import { IconShield, IconWhatsapp } from './Icons';
 export function Logo() {
   return (
     <Link to="/" className="logo" aria-label={`${SITE.name} ana sayfa`}>
-      <span className="logo-mark" aria-hidden="true">
-        <svg viewBox="0 0 32 32">
-          <path d="M5 27V14L16 5l11 9v13" />
-          <path d="M12 27v-8h8v8" />
-        </svg>
-      </span>
-      <span className="logo-text">
-        <strong>Ak</strong> Emlak
-      </span>
+      <img src="/logo.webp" alt={SITE.name} width={180} height={48} decoding="async" />
     </Link>
   );
 }

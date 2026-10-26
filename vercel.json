@@ -13,7 +13,7 @@
       "destination": "/kvkk/index.html"
     },
     {
-      "source": "/((?!assets/|img/|detay/|ilan-basvurusu|kvkk|data\\.json|og\\.jpg|sitemap\\.xml|favicon\\.svg|robots\\.txt|ga-init\\.js).*)",
+      "source": "/((?!assets/|img/|detay/|ilan-basvurusu|kvkk|data\\.json|og\\.jpg|sitemap\\.xml|robots\\.txt|ga-init\\.js|logo|favicon|icon-|apple-touch-icon).*)",
       "destination": "/index.html"
     }
   ],
