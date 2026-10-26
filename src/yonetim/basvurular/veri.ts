@@ -88,17 +88,17 @@ export function useBasvurular(durum: BasvuruDurum) {
   return { liste, sayilar, hata };
 }
 
-export function useBasvuru(id: string) {
+/** Tek başvuru (canlı). id verilmezse abone olunmaz. */
+export function useBasvuru(id: string | null) {
   const [b, setB] = useState<Basvuru | null | undefined>(undefined);
-  useEffect(
-    () =>
-      onSnapshot(
-        doc(db, 'basvurular', id),
-        (s) => setB(s.exists() ? basvuruOf(s.id, s.data()) : null),
-        () => setB(null),
-      ),
-    [id],
-  );
+  useEffect(() => {
+    if (!id) return;
+    return onSnapshot(
+      doc(db, 'basvurular', id),
+      (s) => setB(s.exists() ? basvuruOf(s.id, s.data()) : null),
+      () => setB(null),
+    );
+  }, [id]);
   return b;
 }
 

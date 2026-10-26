@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import BasvuruDetay from './basvurular/Detay';
 import BasvuruListesi from './basvurular/Liste';
+import Duzenleyici from './ilanlar/Duzenleyici';
+import IlanListesi from './ilanlar/Liste';
 import { Giris, Yetkisiz } from './Giris';
 import { IkonArti, IkonAyar, IkonEv, IkonGelen } from './ikonlar';
 import { useOturum, YetkiliBaglami } from './oturum';
@@ -58,11 +60,13 @@ function SekmeLink({ to, on, ikon, ad }: { to: string; on: boolean; ikon: ReactN
 function Ekran({ rota }: { rota: Rota }) {
   switch (rota.ad) {
     case 'ilanlar':
-      return <Hazirlaniyor baslik="İlanlar" />;
+      return <IlanListesi />;
     case 'ilan':
+      return <Duzenleyici key={rota.id} mod="duzenle" ilanNo={rota.id} />;
     case 'ilanYeni':
+      return <Duzenleyici key="yeni" mod="yeni" />;
     case 'basvuruIlan':
-      return <Hazirlaniyor baslik="İlan" />;
+      return <Duzenleyici key={rota.id} mod="basvuru" basvuruId={rota.id} />;
     case 'ayarlar':
       return <Hazirlaniyor baslik="Ayarlar" />;
     case 'basvuru':
