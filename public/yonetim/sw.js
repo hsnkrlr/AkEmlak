@@ -34,8 +34,11 @@ self.addEventListener('notificationclick', (event) => {
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
       for (const c of list) {
         if (c.url.startsWith(self.location.origin + '/yonetim')) {
-          c.navigate(url.href);
-          return c.focus();
+          // Kapsam dışındaki pencere (ör. /yonetim) yönlendirilemezse yeni pencere açılır
+          return c
+            .navigate(url.href)
+            .then((w) => (w || c).focus())
+            .catch(() => self.clients.openWindow(url.href));
         }
       }
       return self.clients.openWindow(url.href);

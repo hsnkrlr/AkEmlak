@@ -86,3 +86,49 @@ test('fotografAdi ve yaziyaDok biçimleri', () => {
   const s = yaziyaDok({ ilanlar: [{ baslik: 'a' }] });
   assert.equal(s, '{\n  "ilanlar": [\n    {\n      "baslik": "a"\n    }\n  ]\n}\n');
 });
+
+/* ---- Son inceleme düzeltmeleri ---- */
+import { basvuruFotografiMi, ilanSurumu, slugify } from '../src/ilanlar.ts';
+
+test('dogrula sitenin kabul ettiği yazımları normalleştirir (taslak, kiralık, usd, bilinmeyen kategori)', () => {
+  const r = dogrula({ baslik: 'a', tur: 'kiralık', durum: 'taslak', paraBirimi: 'usd', kategori: 'Tekne' });
+  assert.equal(r.ok, true);
+  if (!r.ok) return;
+  assert.equal(r.ilan.tur, 'kiralik');
+  assert.equal(r.ilan.durum, 'gizli');
+  assert.equal(r.ilan.paraBirimi, 'USD');
+  assert.equal(r.ilan.kategori, 'diger');
+  assert.equal(r.ilan.kategoriAdi, 'Tekne');
+  for (const [girdi, beklenen] of [['kiralandı', 'satildi'], ['satıldı', 'satildi'], ['yayında', 'yayinda'], ['gizli', 'gizli']]) {
+    const x = dogrula({ baslik: 'a', durum: girdi });
+    assert.equal(x.ok && x.ilan.durum, beklenen, girdi);
+  }
+});
+
+test('dogrula sitenin sınırlarını kullanır: 40 özellik, 6000 karakter açıklama', () => {
+  const r = dogrula({ baslik: 'a', ozellikler: Array.from({ length: 45 }, (_, i) => `ö${i}`), aciklama: 'x'.repeat(6100) });
+  assert.equal(r.ok && (r.ilan.ozellikler as string[]).length, 40);
+  assert.equal(r.ok && (r.ilan.aciklama as string).length, 6000);
+});
+
+test('ilanSurumu ilan değişince değişir, aynı ilan için aynıdır', () => {
+  const a = { ilanNo: 'AK-1', baslik: 'Ev', fiyat: 5 };
+  assert.equal(ilanSurumu(a), ilanSurumu(JSON.parse(JSON.stringify(a))));
+  assert.notEqual(ilanSurumu(a), ilanSurumu({ ...a, fiyat: 6 }));
+});
+
+test('ekle yeni ilana mevcut bir ilanın adresini vermez', () => {
+  const v: DataJson = { ilanlar: [{ ilanNo: 'AK-1', baslik: 'Merkezde Satılık Arsa' }, { ilanNo: 'AK-2', baslik: 'x', baglanti: 'merkezde-satilik-arsa-2' }] };
+  const y = ekle(v, { baslik: 'Merkezde Satılık Arsa' }, 'AK-3', '2026-10-27', []);
+  assert.equal(y.ilanlar[0].baglanti, 'merkezde-satilik-arsa-3');
+  const z = ekle(v, { baslik: 'Başka Bir Ev' }, 'AK-3', '2026-10-27', []);
+  assert.equal('baglanti' in z.ilanlar[0], false);
+  assert.equal(slugify("Nurdağı Esenyurt'ta Ev"), 'nurdagi-esenyurtta-ev');
+});
+
+test('basvuruFotografiMi yalnızca başvuru sahibinin klasöründeki fotoğrafı kabul eder', () => {
+  assert.equal(basvuruFotografiMi('basvurular/uid1234567890/abcdefghijklmnop0001.jpg', 'uid1234567890'), true);
+  assert.equal(basvuruFotografiMi('basvurular/baskasi12345/abcdefghijklmnop0001.jpg', 'uid1234567890'), false);
+  assert.equal(basvuruFotografiMi('yonetim/uid1234567890/abcdefghijklmnop0001.jpg', 'uid1234567890'), false);
+  assert.equal(basvuruFotografiMi('basvurular/uid1234567890/../x.jpg', 'uid1234567890'), false);
+});

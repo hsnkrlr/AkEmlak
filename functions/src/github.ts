@@ -79,6 +79,12 @@ export function depoOlustur(o: {
     return { veri, commit, tree: c.tree.sha };
   }
 
+  async function varOlanlar(tree: string, yollar: string[]): Promise<string[]> {
+    const t = await json<{ tree: { path: string; type: string }[] }>('GET', `/git/trees/${tree}?recursive=1`);
+    const var_ = new Set(t.tree.filter((x) => x.type === 'blob').map((x) => x.path));
+    return yollar.filter((y) => var_.has(y));
+  }
+
   async function blob(icerik: Buffer): Promise<string> {
     return (await json<{ sha: string }>('POST', '/git/blobs', { content: icerik.toString('base64'), encoding: 'base64' })).sha;
   }
@@ -95,7 +101,9 @@ export function depoOlustur(o: {
         const tree: { path: string; mode: string; type: string; sha: string | null }[] = [];
         for (const d of h.ekle) tree.push({ path: d.yol, mode: '100644', type: 'blob', sha: await blob(d.icerik) });
         tree.push({ path: VERI_YOLU, mode: '100644', type: 'blob', sha: await blob(Buffer.from(o.yaziyaDok(h.veri), 'utf8')) });
-        for (const yol of h.sil) tree.push({ path: yol, mode: '100644', type: 'blob', sha: null });
+        // GitHub, depoda olmayan bir yolu silmeye çalışan ağacı reddeder (422): yalnızca var olanları sil
+        const silinecek = h.sil.length ? await varOlanlar(mevcut.tree, h.sil) : [];
+        for (const yol of silinecek) tree.push({ path: yol, mode: '100644', type: 'blob', sha: null });
         const t = await json<{ sha: string }>('POST', '/git/trees', { base_tree: mevcut.tree, tree });
         const c = await json<{ sha: string }>('POST', '/git/commits', { message: typeof mesaj === 'function' ? mesaj() : mesaj, tree: t.sha, parents: [mevcut.commit] });
         const res = await istek('PATCH', `/git/refs/${ref}`, { sha: c.sha, force: false });

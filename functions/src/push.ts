@@ -17,11 +17,22 @@ const GECERSIZ = ['messaging/registration-token-not-registered', 'messaging/inva
 
 export async function bildirimGonder(o: {
   basvuru: { id: string; number: string; status: string; listing: { type: string; district?: unknown; city?: unknown } };
-  tokenlar: { ref: { delete(): Promise<unknown> }; token: string }[];
+  tokenlar: { ref: { delete(): Promise<unknown> }; token: string; email?: string }[];
+  /** Verilirse yalnızca bu listedeki e-postaların cihazlarına gönderilir; listeden çıkarılanların kayıtları silinir */
+  yetkililer?: Set<string>;
   gonder: (mesajlar: object[]) => Promise<{ responses: { success: boolean; error?: { code: string } }[] }>;
 }): Promise<{ gonderilen: number; silinen: number }> {
-  const { basvuru, tokenlar } = o;
-  if (basvuru.status === 'supheli' || !tokenlar.length) return { gonderilen: 0, silinen: 0 };
+  const { basvuru } = o;
+  if (basvuru.status === 'supheli') return { gonderilen: 0, silinen: 0 };
+  let silinen = 0;
+  const tokenlar = [];
+  for (const t of o.tokenlar) {
+    if (o.yetkililer && !(t.email && o.yetkililer.has(t.email))) {
+      await t.ref.delete().catch(() => undefined);
+      silinen++;
+    } else tokenlar.push(t);
+  }
+  if (!tokenlar.length) return { gonderilen: 0, silinen };
   const yer = [basvuru.listing.district, basvuru.listing.city].find((v) => typeof v === 'string' && v.trim()) as string | undefined;
   const title = `Yeni ilan başvurusu ${basvuru.number}`;
   const body = [TYPE_LABEL[basvuru.listing.type] ?? basvuru.listing.type, yer].filter(Boolean).join(' · ');
@@ -34,7 +45,6 @@ export async function bildirimGonder(o: {
   }));
   const { responses } = await o.gonder(mesajlar);
   let gonderilen = 0;
-  let silinen = 0;
   for (const [i, r] of responses.entries()) {
     if (r.success) gonderilen++;
     else if (r.error && GECERSIZ.includes(r.error.code)) {

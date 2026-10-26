@@ -67,6 +67,7 @@ const gh = createServer(async (req, res) => {
   const p = u.pathname.replace('/repos/hsnkrlr/AkEmlak', '');
   if (req.method === 'GET' && p.startsWith('/git/ref/heads/')) return json(200, { object: { sha: ref } });
   if (req.method === 'GET' && p.startsWith('/git/commits/')) return json(200, { tree: { sha: commits.get(p.split('/').pop()).tree } });
+  if (req.method === 'GET' && p.startsWith('/git/trees/')) return json(200, { truncated: false, tree: [...trees.get(p.split('/').pop()).keys()].map((path) => ({ path, type: 'blob' })) });
   if (req.method === 'GET' && p === '/contents/public/data.json') return res.writeHead(200).end(blobs.get(trees.get(commits.get(u.searchParams.get('ref')).tree).get('public/data.json')));
   if (req.method === 'POST' && p === '/git/blobs') {
     const s = sha(b.content);
@@ -215,6 +216,45 @@ assert.equal(((await getDoc(`yetkililer/${YETKILI}/cihazlar`)).documents ?? []).
 await page.click('text=Bu cihazda bildirimleri kapat');
 await page.waitForSelector('text=Bu cihazda bildirimleri aç');
 adim('bildirim aç/kapat → cihaz kaydı eklendi/silindi');
+
+// Sunucu fonksiyonlarını doğrudan çağırarak: eski sürümle kaydetme, tekrar deneme, onaylı başvuru
+const idToken = await (async () => {
+  const r = await fetch('http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=demo-key', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ postBody: `id_token=${JSON.stringify({ sub: `${YETKILI}-true`, email: YETKILI, email_verified: true })}&providerId=google.com`, requestUri: 'http://localhost', returnSecureToken: true }),
+  });
+  return (await r.json()).idToken;
+})();
+const cagir = async (ad, data) => {
+  const r = await fetch(`http://127.0.0.1:5001/demo-akemlak/europe-west3/${ad}`, { method: 'POST', headers: { 'content-type': 'application/json', Authorization: `Bearer ${idToken}` }, body: JSON.stringify({ data }) });
+  return r.json();
+};
+const istek = () => Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+{
+  const g = (await cagir('ilanlariGetir', {})).result;
+  const hedef = g.ilanlar.find((i) => i.ilanNo);
+  const eskiSurum = g.surumler[hedef.ilanNo];
+  const r1 = await cagir('ilanKaydet', { ilan: { ...hedef, fiyat: 111 }, ilanNo: hedef.ilanNo, surum: eskiSurum, fotograflar: [], istekId: istek() });
+  assert.equal(r1.result?.ilanNo, hedef.ilanNo, JSON.stringify(r1));
+  const r2 = await cagir('ilanKaydet', { ilan: { ...hedef, fiyat: 222 }, ilanNo: hedef.ilanNo, surum: eskiSurum, fotograflar: [], istekId: istek() });
+  assert.equal(r2.error?.status, 'ABORTED', JSON.stringify(r2));
+  assert.match(r2.error.message, /siz düzenlerken değişti/);
+  assert.equal(depo().data.ilanlar.find((i) => i.ilanNo === hedef.ilanNo).fiyat, 111);
+  adim('eski ekranla kaydetme reddedildi, diğer yetkilinin değişikliği korundu');
+
+  const id = istek();
+  const ilk = await cagir('ilanKaydet', { ilan: { baslik: 'Tekrar denenen ilan' }, fotograflar: [], istekId: id });
+  const commitSayisi = mesajlar.length;
+  const tekrar = await cagir('ilanKaydet', { ilan: { baslik: 'Tekrar denenen ilan' }, fotograflar: [], istekId: id });
+  assert.equal(tekrar.result?.ilanNo, ilk.result.ilanNo, JSON.stringify(tekrar));
+  assert.equal(mesajlar.length, commitSayisi);
+  assert.equal(depo().data.ilanlar.filter((i) => i.baslik === 'Tekrar denenen ilan').length, 1);
+  adim('aynı istekle tekrar deneme ikinci ilan oluşturmadı');
+
+  const onayli = await cagir('ilanKaydet', { ilan: { baslik: 'x' }, basvuruId: 'e2ebasvuru1', fotograflar: [], istekId: istek() });
+  assert.equal(onayli.error?.status, 'ALREADY_EXISTS', JSON.stringify(onayli));
+  adim('onaylanmış başvuru ikinci kez ilana dönüştürülmedi');
+}
 
 // Ziyaretçi formu hâlâ çalışıyor
 const z = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();

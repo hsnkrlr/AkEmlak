@@ -15,8 +15,8 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { depoOlustur, GithubHatasi, type Depo } from './github';
 import {
-  dogrula, ekle, fotografAdi, guncelle, ilanBul, islemUygula, kullanilmayanFotograflar, sonrakiIlanNo, yaziyaDok,
-  type DataJson, type IlanIslem, type IlanJson,
+  basvuruFotografiMi, dogrula, ekle, fotografAdi, guncelle, ilanAdresi, ilanBul, ilanSurumu, islemUygula, kullanilmayanFotograflar,
+  sonrakiIlanNo, yaziyaDok, type DataJson, type IlanIslem, type IlanJson,
 } from './ilanlar';
 import { fotografIsle } from './resim';
 import { yetkiliMi } from './yetki';
@@ -36,6 +36,8 @@ const SECENEK = {
   secrets: [GITHUB_TOKEN],
   memory: '1GiB' as const,
   timeoutSeconds: 120,
+  // Maliyet sınırı (index.ts'teki genel ayar bu modüle uygulanmaz)
+  maxInstances: 3,
 };
 
 const ISLEMLER: IlanIslem[] = ['yayinda', 'satildi', 'gizli', 'firsat', 'firsatKaldir', 'sil'];
@@ -74,32 +76,42 @@ function hataCevir(e: unknown): HttpsError {
 
 const bugun = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Istanbul' }).format(new Date());
 
-function slugify(s: string): string {
-  const tr: Record<string, string> = { ç: 'c', ğ: 'g', ı: 'i', i: 'i', ö: 'o', ş: 's', ü: 'u', â: 'a', î: 'i', û: 'u' };
-  return s
-    .toLocaleLowerCase('tr-TR')
-    .replace(/['’`]/g, '')
-    .replace(/[çğıiöşüâîû]/g, (c) => tr[c] ?? c)
-    .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 80)
-    .replace(/-+$/g, '');
-}
-
-const baglanti = (i: IlanJson) => `${SITE}/detay/${i.baglanti || slugify(i.baslik)}`;
+const baglanti = (i: IlanJson) => `${SITE}/detay/${ilanAdresi(i)}`;
+const ISTEK_ID = /^[A-Za-z0-9]{16,40}$/;
 const imgYolu = (ad: string) => `public/img/${ad}`;
 
-async function islemKaydet(kim: string, ne: string, ilanNo: string, commit: string) {
-  await getFirestore().collection('islemler').add({ kim, ne, ilanNo, commit, tarih: FieldValue.serverTimestamp() });
+async function islemKaydet(kim: string, ne: string, ilanNo: string, commit: string, ek: { istekId?: string; baglanti?: string } = {}) {
+  await getFirestore().collection('islemler').add({ kim, ne, ilanNo, commit, ...ek, tarih: FieldValue.serverTimestamp() });
+}
+
+/**
+ * Aynı istek (bağlantı koptuğu için "Tekrar dene"ye basılması) ikinci kez işlenmez: önceki sonuç döner.
+ * İstemci her form/işlem için rastgele bir istekId üretir.
+ */
+async function oncekiSonuc(istekId: string) {
+  const q = await getFirestore().collection('islemler').where('istekId', '==', istekId).limit(1).get();
+  const d = q.docs[0]?.data();
+  return d ? { ilanNo: String(d.ilanNo), baglanti: String(d.baglanti ?? ''), commit: String(d.commit) } : null;
+}
+
+/** Storage'da bulunamayan dosya (ör. gece temizliğinde silinmiş) için anlaşılır hata */
+async function indir(yol: string): Promise<Buffer> {
+  try {
+    const [buf] = await getStorage().bucket().file(yol).download();
+    return buf;
+  } catch (e) {
+    if ((e as { code?: number }).code === 404) throw new HttpsError('not-found', 'Bir fotoğraf bulunamadı (silinmiş olabilir). Fotoğrafı kaldırıp tekrar ekleyin.');
+    throw e;
+  }
 }
 
 export const ilanlariGetir = onCall(SECENEK, async (req) => {
   await yetkiliGerekir(req);
   try {
     const { veri, commit } = await depo().oku();
-    return { ilanlar: veri.ilanlar, commit };
+    // Düzenleme ekranı kaydederken bu sürümü geri gönderir; arada değişmişse kayıt reddedilir
+    const surumler = Object.fromEntries(veri.ilanlar.filter((i) => i.ilanNo).map((i) => [i.ilanNo, ilanSurumu(i)]));
+    return { ilanlar: veri.ilanlar, commit, surumler };
   } catch (e) {
     throw hataCevir(e);
   }
@@ -108,12 +120,18 @@ export const ilanlariGetir = onCall(SECENEK, async (req) => {
 export const ilanKaydet = onCall(SECENEK, async (req) => {
   const email = await yetkiliGerekir(req);
   const uid = req.auth!.uid;
-  const data = (req.data ?? {}) as { ilan?: unknown; ilanNo?: unknown; fotograflar?: unknown; basvuruId?: unknown };
+  const data = (req.data ?? {}) as { ilan?: unknown; ilanNo?: unknown; fotograflar?: unknown; basvuruId?: unknown; surum?: unknown; istekId?: unknown };
+  const istekId = typeof data.istekId === 'string' ? data.istekId : '';
+  if (!ISTEK_ID.test(istekId)) throw new HttpsError('invalid-argument', 'Geçersiz istek.');
+  const onceki = await oncekiSonuc(istekId);
+  if (onceki) return onceki;
 
   const d = dogrula(data.ilan);
   if (!d.ok) throw new HttpsError('invalid-argument', d.hata);
   const duzenlenen = typeof data.ilanNo === 'string' && data.ilanNo ? data.ilanNo : null;
   if (duzenlenen !== null && !ILAN_NO.test(duzenlenen)) throw new HttpsError('invalid-argument', 'Geçersiz ilan numarası.');
+  const surum = typeof data.surum === 'string' ? data.surum : '';
+  if (duzenlenen !== null && !surum) throw new HttpsError('invalid-argument', 'İlan sürümü eksik. Sayfayı yenileyip tekrar deneyin.');
   const basvuruId = typeof data.basvuruId === 'string' && data.basvuruId ? data.basvuruId : null;
   if (basvuruId !== null && !/^[A-Za-z0-9]{1,64}$/.test(basvuruId)) throw new HttpsError('invalid-argument', 'Geçersiz başvuru.');
   const fotolar = Array.isArray(data.fotograflar) ? (data.fotograflar as FotoGirdi[]) : [];
@@ -124,7 +142,11 @@ export const ilanKaydet = onCall(SECENEK, async (req) => {
   if (basvuruId) {
     const b = await db.doc(`basvurular/${basvuruId}`).get();
     if (!b.exists) throw new HttpsError('not-found', 'Başvuru bulunamadı.');
-    basvuruFotolari = ((b.get('photos') as unknown[]) ?? []).filter((p): p is string => typeof p === 'string');
+    const onayliNo = b.get('status') === 'onaylandi' ? (b.get('inceleme.ilanNo') as string | undefined) : undefined;
+    if (onayliNo) throw new HttpsError('already-exists', `Bu başvuru zaten ${onayliNo} numaralı ilana dönüştürüldü.`);
+    // Ziyaretçinin yazdığı yol listesine güvenilmez: yalnızca başvuru sahibinin klasöründekiler
+    const sahip = String(b.get('uid') ?? '');
+    basvuruFotolari = ((b.get('photos') as unknown[]) ?? []).filter((p): p is string => typeof p === 'string' && basvuruFotografiMi(p, sahip));
   }
   const yuklemeRe = new RegExp(`^yonetim/${uid}/[A-Za-z0-9_-]{16,40}\\.(webp|jpg)$`);
 
@@ -136,11 +158,9 @@ export const ilanKaydet = onCall(SECENEK, async (req) => {
       if (f && typeof f === 'object' && 'mevcut' in f && typeof f.mevcut === 'string') {
         plan.push({ tur: 'mevcut', ad: f.mevcut });
       } else if (f && typeof f === 'object' && 'yukleme' in f && typeof f.yukleme === 'string' && yuklemeRe.test(f.yukleme)) {
-        const [buf] = await bucket.file(f.yukleme).download();
-        plan.push({ tur: 'yeni', icerik: await fotografIsle(buf), kaynak: f.yukleme });
+        plan.push({ tur: 'yeni', icerik: await fotografIsle(await indir(f.yukleme)), kaynak: f.yukleme });
       } else if (f && typeof f === 'object' && 'basvuru' in f && typeof f.basvuru === 'string' && basvuruFotolari.includes(f.basvuru)) {
-        const [buf] = await bucket.file(f.basvuru).download();
-        plan.push({ tur: 'yeni', icerik: await fotografIsle(buf), kaynak: f.basvuru });
+        plan.push({ tur: 'yeni', icerik: await fotografIsle(await indir(f.basvuru)), kaynak: f.basvuru });
       } else {
         throw new HttpsError('invalid-argument', 'Geçersiz fotoğraf seçimi.');
       }
@@ -152,6 +172,9 @@ export const ilanKaydet = onCall(SECENEK, async (req) => {
       ilanNo = duzenlenen ?? sonrakiIlanNo(veri.ilanlar);
       const mevcutlar = new Set(duzenlenen ? (ilanBul(veri, duzenlenen)?.fotograflar ?? []) : []);
       if (duzenlenen && !ilanBul(veri, duzenlenen)) throw new Error(`İlan bulunamadı: ${duzenlenen}`);
+      if (duzenlenen && ilanSurumu(ilanBul(veri, duzenlenen)!) !== surum) {
+        throw new HttpsError('aborted', 'Bu ilan siz düzenlerken değişti (başka bir yetkili ya da data.json). İlanı yeniden açıp tekrar deneyin.');
+      }
       const kullanilan = new Set(veri.ilanlar.flatMap((i) => i.fotograflar ?? []));
       const adlar: string[] = [];
       const ekleList: { yol: string; icerik: Buffer }[] = [];
@@ -179,10 +202,11 @@ export const ilanKaydet = onCall(SECENEK, async (req) => {
         inceleme: { guncelleyen: email, guncellendi: FieldValue.serverTimestamp(), ilanNo },
       });
     }
-    await islemKaydet(email, duzenlenen ? 'duzenle' : 'ekle', ilanNo, sonuc.commit);
+    const sonucBaglanti = baglanti(sonIlan);
+    await islemKaydet(email, duzenlenen ? 'duzenle' : 'ekle', ilanNo, sonuc.commit, { istekId, baglanti: sonucBaglanti });
     // Yönetimden yüklenen geçici dosyalar artık depoda; Storage'dan kaldır
     await Promise.all(plan.filter((p) => p.tur === 'yeni' && p.kaynak.startsWith('yonetim/')).map((p) => bucket.file((p as { kaynak: string }).kaynak).delete().catch(() => undefined)));
-    return { ilanNo, baglanti: baglanti(sonIlan), commit: sonuc.commit };
+    return { ilanNo, baglanti: sonucBaglanti, commit: sonuc.commit };
   } catch (e) {
     throw hataCevir(e);
   }
@@ -190,7 +214,12 @@ export const ilanKaydet = onCall(SECENEK, async (req) => {
 
 export const ilanIslem = onCall(SECENEK, async (req) => {
   const email = await yetkiliGerekir(req);
-  const data = (req.data ?? {}) as { ilanNo?: unknown; islem?: unknown };
+  const data = (req.data ?? {}) as { ilanNo?: unknown; islem?: unknown; istekId?: unknown };
+  const istekId = typeof data.istekId === 'string' && ISTEK_ID.test(data.istekId) ? data.istekId : '';
+  if (istekId) {
+    const onceki = await oncekiSonuc(istekId);
+    if (onceki) return { commit: onceki.commit };
+  }
   const ilanNo = typeof data.ilanNo === 'string' ? data.ilanNo : '';
   const islem = data.islem as IlanIslem;
   if (!ILAN_NO.test(ilanNo) || !ISLEMLER.includes(islem)) throw new HttpsError('invalid-argument', 'Geçersiz işlem.');
@@ -200,7 +229,7 @@ export const ilanIslem = onCall(SECENEK, async (req) => {
       const sil = islem === 'sil' ? kullanilmayanFotograflar(veri, yeni).filter((f) => FOTO_ADI.test(f)).map(imgYolu) : [];
       return { veri: yeni, ekle: [], sil };
     }, `Yönetim: ${ilanNo} ${ISLEM_METNI[islem]} (${email})`);
-    await islemKaydet(email, islem === 'sil' ? 'sil' : 'durum', ilanNo, sonuc.commit);
+    await islemKaydet(email, islem === 'sil' ? 'sil' : 'durum', ilanNo, sonuc.commit, istekId ? { istekId } : {});
     return { commit: sonuc.commit };
   } catch (e) {
     throw hataCevir(e);

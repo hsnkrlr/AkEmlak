@@ -3,6 +3,7 @@
  * Alan adları ve sınırlar sitedeki src/lib/schema.ts ile aynıdır. Elle eklenmiş, burada bilinmeyen
  * alanlar ve üst düzey anahtarlar her işlemde korunur.
  */
+import { createHash } from 'node:crypto';
 
 export type IlanJson = {
   ilanNo?: string;
@@ -24,15 +25,19 @@ const KATEGORILER = [
 /** Yönetim uygulamasının düzenleyebildiği alanlar ve sınırları */
 const METIN: Record<string, number> = {
   baslik: 140, kategoriAdi: 40, il: 60, ilce: 60, mahalle: 80, odaSayisi: 20, kat: 30, isitma: 40,
-  marka: 40, model: 80, yakit: 30, vites: 30, renk: 30, aciklama: 5000,
+  marka: 40, model: 80, yakit: 30, vites: 30, renk: 30, aciklama: 6000,
 };
 const SAYI: Record<string, number> = {
   fiyat: 1e12, brutM2: 1e7, netM2: 1e7, banyoSayisi: 50, binaYasi: 300, modelYili: 2100, km: 1e7,
 };
-const SECIM: Record<string, string[]> = {
-  tur: ['satilik', 'kiralik'],
-  paraBirimi: ['TRY', 'USD', 'EUR'],
-  durum: ['yayinda', 'satildi', 'gizli'],
+/** Sitenin (schema.ts) kabul ettiği yazımlar → data.json'a yazılan değer */
+const SECIM: Record<string, Record<string, string>> = {
+  tur: { satilik: 'satilik', 'satılık': 'satilik', kiralik: 'kiralik', 'kiralık': 'kiralik' },
+  paraBirimi: { try: 'TRY', usd: 'USD', eur: 'EUR' },
+  durum: {
+    yayinda: 'yayinda', 'yayında': 'yayinda', satildi: 'satildi', 'satıldı': 'satildi', kiralandi: 'satildi', 'kiralandı': 'satildi',
+    gizli: 'gizli', taslak: 'gizli',
+  },
 };
 const DUZENLENEBILIR = [...Object.keys(METIN), ...Object.keys(SAYI), ...Object.keys(SECIM), 'kategori', 'ozellikler', 'firsat', 'baglanti'];
 
@@ -52,22 +57,25 @@ export function dogrula(girdi: unknown): { ok: true; ilan: IlanJson } | { ok: fa
   if (!baslik) return { ok: false, hata: 'Başlık zorunlu.' };
   const ilan: IlanJson = { baslik };
 
-  const kategori = metin(r.kategori, 40).toLocaleLowerCase('tr-TR');
-  if (kategori) ilan.kategori = KATEGORILER.includes(kategori) ? kategori : 'diger';
-  for (const [k, values] of Object.entries(SECIM)) {
-    const v = metin(r[k], 20);
-    if (values.includes(v)) ilan[k] = v;
-  }
   for (const [k, max] of Object.entries(METIN)) {
     const v = metin(r[k], max);
     if (v && k !== 'baslik') ilan[k] = v;
+  }
+  const kategoriHam = metin(r.kategori, 40);
+  const kategori = kategoriHam.toLocaleLowerCase('tr-TR');
+  if (kategori) ilan.kategori = KATEGORILER.includes(kategori) ? kategori : 'diger';
+  // Bilinmeyen kategori adı kaybolmasın: sitede "Diğer" yerine bu ad gösterilir
+  if (kategori && !KATEGORILER.includes(kategori) && !ilan.kategoriAdi) ilan.kategoriAdi = kategoriHam;
+  for (const [k, harita] of Object.entries(SECIM)) {
+    const v = harita[metin(r[k], 20).toLocaleLowerCase('tr-TR')];
+    if (v) ilan[k] = v;
   }
   for (const [k, max] of Object.entries(SAYI)) {
     const v = sayi(r[k], max);
     if (v !== null) ilan[k] = v;
   }
   if (Array.isArray(r.ozellikler)) {
-    const list = r.ozellikler.map((x) => metin(x, 60)).filter(Boolean).slice(0, 20);
+    const list = r.ozellikler.map((x) => metin(x, 60)).filter(Boolean).slice(0, 40);
     if (list.length) ilan.ozellikler = list;
   }
   if (r.firsat === true) ilan.firsat = true;
@@ -95,8 +103,39 @@ function sira(veri: DataJson, ilanNo: string): number {
   return i;
 }
 
+const TR: Record<string, string> = { ç: 'c', ğ: 'g', ı: 'i', i: 'i', ö: 'o', ş: 's', ü: 'u', â: 'a', î: 'i', û: 'u' };
+/** Sitedeki src/lib/format.ts slugify ile aynı */
+export function slugify(s: string): string {
+  return s
+    .toLocaleLowerCase('tr-TR')
+    .replace(/['’`]/g, '')
+    .replace(/[çğıiöşüâîû]/g, (c) => TR[c] ?? c)
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80)
+    .replace(/-+$/g, '');
+}
+
+/** İlanın sitedeki adresi (baglanti yoksa başlıktan) */
+export const ilanAdresi = (i: IlanJson) => (typeof i.baglanti === 'string' && i.baglanti) || slugify(i.baslik);
+
+/** Düzenleme sırasında başka biri değiştirdi mi? Yüklendiği andaki sürümle karşılaştırılır. */
+export function ilanSurumu(i: IlanJson): string {
+  return createHash('sha256').update(JSON.stringify(i)).digest('hex').slice(0, 16);
+}
+
 export function ekle(veri: DataJson, ilan: IlanJson, ilanNo: string, tarih: string, fotograflar: string[]): DataJson {
   const yeni: IlanJson = { ilanNo, ...ilan, fotograflar: [...fotograflar], durum: ilan.durum ?? 'yayinda', tarih };
+  // Aynı adres başka ilanda varsa yeni ilana -2, -3… eki ver (mevcut ilanın adresi değişmesin)
+  const kullanilan = new Set(veri.ilanlar.map(ilanAdresi));
+  const adres = ilanAdresi(yeni);
+  if (kullanilan.has(adres)) {
+    let n = 2;
+    while (kullanilan.has(`${adres}-${n}`)) n++;
+    yeni.baglanti = `${adres}-${n}`;
+  }
   return { ...veri, ilanlar: [yeni, ...veri.ilanlar] };
 }
 
@@ -126,6 +165,12 @@ const tumFotograflar = (veri: DataJson) => new Set(veri.ilanlar.flatMap((i) => (
 export function kullanilmayanFotograflar(eski: DataJson, yeni: DataJson): string[] {
   const kalan = tumFotograflar(yeni);
   return [...tumFotograflar(eski)].filter((f) => !kalan.has(f));
+}
+
+/** Başvuru fotoğrafı yalnızca başvuruyu gönderenin klasöründen alınabilir */
+export function basvuruFotografiMi(yol: string, uid: string): boolean {
+  const m = /^basvurular\/([A-Za-z0-9]{10,128})\/[A-Za-z0-9_-]{16,40}\.(webp|jpg)$/.exec(yol);
+  return !!m && m[1] === uid;
 }
 
 export function fotografAdi(ilanNo: string, sira: number, rastgele: string): string {

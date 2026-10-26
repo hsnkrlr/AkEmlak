@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { CATEGORY_LABEL, type Category } from '../../types';
-import { hataMetni, ilanIslem, ilanlariGetir, type IlanIslem, type IlanKaydi } from './api';
+import { durumOf as durumNorm, hataMetni, ilanIslem, ilanlariGetir, istekKimligi, turOf, type IlanIslem, type IlanKaydi } from './api';
 
-const fiyatOf = (i: IlanKaydi) =>
-  !i.fiyat ? 'Fiyat için arayın' : `${new Intl.NumberFormat('tr-TR').format(i.fiyat)} ${i.paraBirimi === 'USD' ? '$' : i.paraBirimi === 'EUR' ? '€' : 'TL'}${i.tur === 'kiralik' ? ' / ay' : ''}`;
-const durumOf = (i: IlanKaydi) => (i.durum === 'satildi' ? 'satildi' : i.durum === 'gizli' ? 'gizli' : 'yayinda');
-const DURUM_ADI = (i: IlanKaydi) => ({ yayinda: 'Yayında', satildi: i.tur === 'kiralik' ? 'Kiralandı' : 'Satıldı', gizli: 'Gizli' })[durumOf(i)];
+const fiyatOf = (i: IlanKaydi) => {
+  const para = String(i.paraBirimi ?? '').toUpperCase();
+  return !i.fiyat ? 'Fiyat için arayın' : `${new Intl.NumberFormat('tr-TR').format(Number(i.fiyat))} ${para === 'USD' ? '$' : para === 'EUR' ? '€' : 'TL'}${turOf(i.tur) === 'kiralik' ? ' / ay' : ''}`;
+};
+const durumOf = (i: IlanKaydi) => durumNorm(i.durum);
+const DURUM_ADI = (i: IlanKaydi) => ({ yayinda: 'Yayında', satildi: turOf(i.tur) === 'kiralik' ? 'Kiralandı' : 'Satıldı', gizli: 'Gizli' })[durumOf(i)];
 
 export default function IlanListesi() {
   const [ilanlar, setIlanlar] = useState<IlanKaydi[] | null>(null);
@@ -15,7 +17,7 @@ export default function IlanListesi() {
 
   const yukle = (yenile = false) => {
     setHata('');
-    ilanlariGetir(yenile).then(setIlanlar, (e) => setHata(hataMetni(e)));
+    ilanlariGetir(yenile).then((r) => setIlanlar(r.ilanlar), (e) => setHata(hataMetni(e)));
   };
   useEffect(() => yukle(), []);
 
@@ -88,14 +90,17 @@ function Islemler({ ilan, bitti }: { ilan: IlanKaydi; bitti: (mesaj: string) => 
   const [hata, setHata] = useState('');
   const no = ilan.ilanNo!;
   const d = durumOf(ilan);
-  const satildiAdi = ilan.tur === 'kiralik' ? 'Kiralandı' : 'Satıldı';
+  const satildiAdi = turOf(ilan.tur) === 'kiralik' ? 'Kiralandı' : 'Satıldı';
+  // Bağlantı koptuktan sonra aynı düğmeye tekrar basılırsa aynı istek gider (işlem iki kez yapılmaz)
+  const [istekler] = useState(() => new Map<IlanIslem, string>());
 
   async function yap(islem: IlanIslem, metin: string) {
     if (islem === 'sil' && !window.confirm(`${no} kalıcı olarak silinsin mi? Fotoğrafları da siteden kaldırılır.`)) return;
     setBekle(islem);
     setHata('');
     try {
-      await ilanIslem(no, islem);
+      if (!istekler.has(islem)) istekler.set(islem, istekKimligi());
+      await ilanIslem(no, islem, istekler.get(islem)!);
       bitti(`${no} ${metin}. Site 1–2 dakika içinde güncellenir.`);
     } catch (e) {
       setHata(hataMetni(e));

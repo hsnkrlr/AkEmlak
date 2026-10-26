@@ -142,13 +142,15 @@ export const basvuruKontrolVeBildirim = onDocumentCreated(
 
     // 4) Yetkililerin telefonlarına bildirim (hata e-postayı engellemez)
     try {
-      const cihazlar = await db.collectionGroup('cihazlar').get();
+      const [cihazlar, yetkililer] = await Promise.all([db.collectionGroup('cihazlar').get(), db.collection('yetkililer').get()]);
       const tokenlar = cihazlar.docs
         .filter((d) => d.ref.parent.parent?.parent.id === 'yetkililer' && typeof d.get('token') === 'string')
-        .map((d) => ({ ref: d.ref, token: d.get('token') as string }));
+        .map((d) => ({ ref: d.ref, token: d.get('token') as string, email: d.ref.parent.parent!.id }));
       const r = await bildirimGonder({
         basvuru: { id: snap.id, number: app.number, status: 'yeni', listing: app.listing },
         tokenlar,
+        // Listeden çıkarılan kişinin cihazına gönderilmez (kaydı silinir)
+        yetkililer: new Set(yetkililer.docs.map((d) => d.id)),
         gonder: (m) => getMessaging().sendEach(m as Parameters<ReturnType<typeof getMessaging>['sendEach']>[0]),
       });
       logger.info('Telefon bildirimi', r);

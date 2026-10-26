@@ -22,6 +22,7 @@ function sahteGithub(o: { refCevaplari?: number[]; ilkCevap?: number; araYazim?:
     const p = u.pathname.replace('/repos/hsnkrlr/AkEmlak', '');
     if (method === 'GET' && p === '/git/ref/heads/yonetim-test') return json(200, { object: { sha: ref } });
     if (method === 'GET' && p.startsWith('/git/commits/')) return json(200, { sha: p.split('/').pop(), tree: { sha: `t-${p.split('/').pop()}` } });
+    if (method === 'GET' && p.startsWith('/git/trees/')) return json(200, { truncated: false, tree: [{ path: 'public/data.json', type: 'blob' }, { path: 'public/img/var.webp', type: 'blob' }, { path: 'public/img/eski.webp', type: 'blob' }] });
     if (method === 'GET' && p === '/contents/public/data.json') return new Response(dosyalar[u.searchParams.get('ref')!], { status: 200 });
     if (method === 'POST' && p === '/git/blobs') return json(201, { sha: `b${++sayac}` });
     if (method === 'POST' && p === '/git/trees') return json(201, { sha: `t${++sayac}` });
@@ -109,4 +110,13 @@ test('commit mesajı, hazırlık sonrası belirlenen ilan numarasıyla yazılabi
   }, () => `Yönetim: ${no} eklendi (a@b.co)`);
   const commit = g.istekler.find((i) => i.path.endsWith('/git/commits') && i.method === 'POST')!.body!;
   assert.equal(commit.message, 'Yönetim: AK-10008 eklendi (a@b.co)');
+});
+
+test('depoda olmayan dosyanın silinmesi istenirse yok sayılır (GitHub 422 vermesin)', async () => {
+  const g = sahteGithub();
+  await depo(g.fetchFn).yaz(async (veri) => ({ veri, ekle: [], sil: ['public/img/var.webp', 'public/img/hic-yuklenmemis.jpg'] }), 'm');
+  const tree = g.istekler.find((i) => i.path.endsWith('/git/trees') && i.method === 'POST')!.body!;
+  const yollar = (tree.tree as { path: string }[]).map((x) => x.path);
+  assert.ok(yollar.includes('public/img/var.webp'));
+  assert.equal(yollar.includes('public/img/hic-yuklenmemis.jpg'), false);
 });

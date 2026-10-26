@@ -45,3 +45,17 @@ test('ilçe yoksa il, tip bilinmiyorsa kendi adı kullanılır; token yoksa gön
   await bildirimGonder({ basvuru: basvuru(), tokenlar: [], gonder: async () => { cagrildi = true; return { responses: [] }; } });
   assert.equal(cagrildi, false);
 });
+
+test('yetkili listesinden çıkarılan kişinin cihazına bildirim gitmez ve kaydı silinir', async () => {
+  const silinen: string[] = [];
+  let gonderilen: string[] = [];
+  const r = await bildirimGonder({
+    basvuru: basvuru(),
+    tokenlar: [{ ...token('t1', silinen), email: 'a@b.co' }, { ...token('t2', silinen), email: 'cikarilan@b.co' }],
+    yetkililer: new Set(['a@b.co']),
+    gonder: async (m) => { gonderilen = m.map((x) => (x as { token: string }).token); return { responses: m.map(() => ({ success: true })) }; },
+  });
+  assert.deepEqual(gonderilen, ['t1']);
+  assert.deepEqual(silinen, ['t2']);
+  assert.equal(r.gonderilen, 1);
+});

@@ -5,7 +5,7 @@ import { basvurudanIlan, type IlanTaslak } from '../donustur';
 import { IkonGeri } from '../ikonlar';
 import { useYetkili } from '../oturum';
 import { git } from '../router';
-import { hataMetni, ilanKaydet, ilanlariGetir, type FotoGirdi, type IlanKaydi } from './api';
+import { durumOf, hataMetni, ilanKaydet, ilanlariGetir, istekKimligi, turOf, type FotoGirdi, type IlanKaydi } from './api';
 import Fotograflar, { fotoGirdisi, type FotoSecim } from './Fotograflar';
 
 export type DuzenleyiciModu = { mod: 'yeni' } | { mod: 'duzenle'; ilanNo: string } | { mod: 'basvuru'; basvuruId: string };
@@ -24,6 +24,10 @@ function formOf(i: IlanTaslak | IlanKaydi): Form {
     else if (typeof v === 'string' || typeof v === 'number') f[k] = String(v);
   }
   if (!f.kategori) f.kategori = 'diger';
+  // Elle yazılmış eşdeğer değerler (kiralık, taslak, usd…) seçim düğmelerinde doğru görünsün
+  f.tur = turOf(f.tur);
+  f.durum = durumOf(f.durum);
+  f.paraBirimi = ['USD', 'EUR'].includes(f.paraBirimi.toUpperCase()) ? f.paraBirimi.toUpperCase() : 'TRY';
   return f;
 }
 
@@ -50,15 +54,20 @@ export default function Duzenleyici(p: DuzenleyiciModu) {
   const [form, setForm] = useState<Form | null>(p.mod === 'yeni' ? { ...BOS } : null);
   const [fotolar, setFotolar] = useState<FotoSecim[]>([]);
   const [yukHata, setYukHata] = useState('');
+  const [surum, setSurum] = useState<string | undefined>(undefined);
+  // Bu formun kaydı için tek kimlik: "Tekrar dene" aynı kaydı iki kez yayınlamaz
+  const [istekId] = useState(istekKimligi);
   const [durum, setDurum] = useState<{ ad: 'hazir' } | { ad: 'kaydediliyor' } | { ad: 'hata'; mesaj: string } | { ad: 'tamam'; ilanNo: string; baglanti: string }>({ ad: 'hazir' });
 
   // Düzenleme: güncel ilanı GitHub'dan getir
   useEffect(() => {
     if (p.mod !== 'duzenle') return;
-    ilanlariGetir().then(
-      (liste) => {
-        const i = liste.find((x) => x.ilanNo === p.ilanNo);
+    // Her açılışta güncel hâli okunur (başka yetkilinin değişikliği ezilmesin)
+    ilanlariGetir(true).then(
+      ({ ilanlar, surumler }) => {
+        const i = ilanlar.find((x) => x.ilanNo === p.ilanNo);
         if (!i) return setYukHata('İlan bulunamadı.');
+        setSurum(surumler[p.ilanNo]);
         setForm(formOf(i));
         setFotolar((i.fotograflar ?? []).map((ad) => ({ anahtar: ad, tur: 'mevcut', ad, onizleme: `/img/${encodeURIComponent(ad)}` })));
       },
@@ -117,6 +126,8 @@ export default function Duzenleyici(p: DuzenleyiciModu) {
       const r = await ilanKaydet({
         ilan: ilanOf(form!),
         ilanNo: p.mod === 'duzenle' ? p.ilanNo : undefined,
+        surum: p.mod === 'duzenle' ? surum : undefined,
+        istekId,
         basvuruId: p.mod === 'basvuru' ? p.basvuruId : undefined,
         fotograflar: fotolar.map(fotoGirdisi).filter((x): x is FotoGirdi => x !== null),
       });
