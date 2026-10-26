@@ -116,9 +116,43 @@ Tam adresler (canonical, sitemap) için sitenin alan adı gerekir:
 
 Site yayına girdikten sonra Google Search Console'a `https://alanadiniz/sitemap.xml` adresini eklemeniz önerilir.
 
+## İlan başvuru formu (Firebase)
+
+`/ilan-basvurusu` sayfasındaki form, başvuruları Firebase projesine (**akemlak-ilan**, Frankfurt / europe-west3) kaydeder.
+
+- **Zorunlu alanlar:** ilan tipi, ad soyad ve cep telefonu (`+90 5XX XXX XX XX`). Diğer alanlar tipe göre değişir ve isteğe bağlıdır.
+- **Bağlantıyla doldurma:** form bağlantı parametreleriyle doldurulmuş açılabilir, örneğin `/ilan-basvurusu?tip=mustakil&tur=kiralik&il=gaziantep&ilce=nurdagi&mahalle=esenyurt&fiyat=8000`. Desteklenen parametreler: `tip`, `tur`, `il`/`city`, `ilce`, `mahalle`, `adres`, `fiyat`, `oda`, `m2`, `net`, `kat`, `ad`, `telefon`, `eposta`, `aciklama`.
+- **Cihazdaki geçmiş:** Başvurular ziyaretçinin cihazında saklanır ("Başvurularım"). Düzenlenip tekrar gönderilen başvuru `resubmission` alanında önceki numara, ilk numara ve sürümle işaretlenir.
+- **Başvuruları görme:** Firebase konsolu → Firestore → `basvurular`. Fotoğraflar Storage → `basvurular/` altında. Her yeni başvuruda fotoğraflar ekli bir e-posta gelir.
+- **Bildirim alıcıları:** Firestore → `ayarlar/bildirim` belgesindeki `alicilar` listesi. Yeni adres eklemek için kod değiştirmek gerekmez.
+- **Gönderen hesap:** Gmail hesabı `gonderen` alanında, uygulama şifresi Secret Manager'da `GMAIL_APP_PASSWORD` adıyla durur. Şifre değişirse yeni bir sürüm ekleyin ve fonksiyonları yeniden yayınlayın.
+
+**Güvenlik**
+
+- Ziyaretçiler anonim oturumla yalnızca **yeni başvuru oluşturabilir**. Okuma, değiştirme ve silme kapalıdır.
+- Kurallar alan beyaz listesini, telefon biçimini, KVKK onayını, sunucu saatini ve kimliği denetler. Aynı oturumdan dakikada en fazla 1 başvuru yapılabilir.
+- Fotoğraflar yalnızca kişinin kendi klasörüne, en fazla 3 MB'lık JPEG/WEBP olarak yüklenebilir.
+- **App Check (reCAPTCHA Enterprise):** İstekler yalnızca sitenizden gelen gerçek tarayıcılardan kabul edilir.
+- **API anahtarı:** Yalnızca `ak-emlak.vercel.app` ve yerel test adreslerinden, yalnızca formun kullandığı servislerle çalışır.
+- **Cloud Functions:**
+  - fotoğrafların gerçekten resim olduğunu ve alanları sunucuda tekrar doğrular,
+  - sık gönderimi "şüpheli" işaretler (bunlar için e-posta gönderilmez),
+  - yarıda kalmış fotoğrafları ve 2 yıldan eski başvuruları her gece siler.
+- **Bütçe uyarısı:** aylık 170 TL.
+
+**Geliştirme ve test**
+
+```bash
+npm run emulators                     # yerel Firebase emülatörleri (Java gerekir)
+npm run test:rules                    # güvenlik kuralı testleri (emülatör açıkken)
+VITE_FIREBASE_EMULATOR=1 npm run dev  # formu emülatöre bağlı çalıştır
+npx firebase deploy --only firestore,storage   # kuralları yayınla
+npx firebase deploy --only functions           # fonksiyonları yayınla
+```
+
 ## Google Analytics
 
-GA4 ölçüm kimliği `G-D2F1KZ11MT`. Etiket `index.html` içinde, başlatma kodu `public/ga-init.js` dosyasında. Kimliği değiştirmek için bu iki dosyayı güncelleyin. Sayfa geçişleri GA4'ün "geliştirilmiş ölçüm" (enhanced measurement) özelliğiyle otomatik sayılır.
+GA4 ölçüm kimliği `G-D2F1KZ11MT` (`public/ga-init.js`). **Analytics yalnızca ziyaretçi çerez bandında "Tümünü kabul et" derse yüklenir.** "Yalnızca zorunlu" seçilirse yüklenmez; tercih değiştirilirse Analytics çerezleri silinir. Sayfa geçişleri GA4'ün "geliştirilmiş ölçüm" özelliğiyle otomatik sayılır.
 
 ## Güvenlik
 
@@ -126,7 +160,7 @@ GA4 ölçüm kimliği `G-D2F1KZ11MT`. Etiket `index.html` içinde, başlatma kod
 - Sitede "kapora / ön ödeme istemeyiz" uyarısı ve ilan numaraları gösterilir.
 - İlan dosyasındaki tüm metinler güvenli biçimde gösterilir (HTML/kod çalıştırılamaz).
 - Fotoğraflar yalnızca sitenin kendi `img/` klasöründen yüklenir.
-- CSP uygulanır: betikler yalnızca sitenin kendisinden ve Google Analytics'ten yüklenebilir. Site başka bir sayfaya gömülemez (clickjacking koruması).
+- CSP uygulanır: betikler ve bağlantılar yalnızca sitenin kendisine ve gerekli Google hizmetlerine (Analytics, Firebase, reCAPTCHA) izinlidir. Site başka bir sayfaya gömülemez (clickjacking koruması).
 - Sunucu başlık dosyaları:
   - Vercel: `vercel.json`
   - Netlify / Cloudflare: `_headers`, `_redirects`
