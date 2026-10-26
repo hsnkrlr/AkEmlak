@@ -1,11 +1,33 @@
 rules_version = '2';
 
 // Ak Emlak — ilan başvuruları
-// Ziyaretçi (anonim oturum) yalnızca kendi adına YENİ başvuru oluşturabilir.
-// Hiçbir ziyaretçi başvuruları okuyamaz, değiştiremez, silemez; başvurular yalnızca
-// Firebase konsolundan ve sunucu fonksiyonlarından (yönetici yetkisiyle) görülür.
+// Ziyaretçi (anonim oturum) yalnızca kendi adına YENİ başvuru oluşturabilir; başvuruları okuyamaz,
+// değiştiremez, silemez. Başvuruları yalnızca yetkililer (yönetim uygulaması) okur ve durumlarını günceller.
+// Yetkili: Google ile giriş yapmış, e-postası doğrulanmış ve `yetkililer/{eposta}` kaydı olan kullanıcı.
+// Yetkili listesi yalnızca Firebase konsolundan değiştirilebilir.
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function yetkili() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider == 'google.com'
+        && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/yetkililer/$(request.auth.token.email));
+    }
+
+    // Yetkilinin başvuruda değiştirebildiği tek şey: durum ve kendi adıyla inceleme bilgisi
+    function validInceleme() {
+      let d = request.resource.data;
+      return d.diff(resource.data).affectedKeys().hasOnly(['status', 'inceleme'])
+        && d.status in ['yeni', 'inceleniyor', 'onaylandi', 'reddedildi']
+        && d.inceleme is map
+        && d.inceleme.keys().hasAll(['guncelleyen', 'guncellendi'])
+        && d.inceleme.keys().hasOnly(['guncelleyen', 'guncellendi', 'ilanNo', 'redSebebi'])
+        && d.inceleme.guncelleyen == request.auth.token.email
+        && d.inceleme.guncellendi == request.time
+        && (!('redSebebi' in d.inceleme) || str(d.inceleme.redSebebi, 0, 300))
+        && (!('ilanNo' in d.inceleme) || str(d.inceleme.ilanNo, 1, 20));
+    }
 
     function str(v, min, max) {
       return v is string && v.size() >= min && v.size() <= max;
@@ -86,7 +108,47 @@ service cloud.firestore {
         && str(request.resource.data.consent.version, 1, 20)
         // Hız sınırı: başvuru, aynı yazımda güncellenen /limits/{uid} kaydıyla birlikte yapılmalı
         && getAfter(/databases/$(database)/documents/limits/$(request.auth.uid)).data.lastAt == request.time;
-      allow read, update, delete: if false;
+      allow read: if yetkili();
+      allow update: if yetkili() && validInceleme();
+      allow delete: if false;
+
+      // Yetkililerin birbirine görünen notları
+      match /notlar/{notId} {
+        allow read: if yetkili();
+        allow create: if yetkili()
+          && request.resource.data.keys().hasAll(['metin', 'yazan', 'tarih'])
+          && request.resource.data.keys().hasOnly(['metin', 'yazan', 'tarih'])
+          && str(request.resource.data.metin, 1, 1000)
+          && request.resource.data.yazan == request.auth.token.email
+          && request.resource.data.tarih == request.time;
+        allow delete: if yetkili() && resource.data.yazan == request.auth.token.email;
+        allow update: if false;
+      }
+    }
+
+    // Yetkili listesi: kişi yalnızca kendi kaydını okuyabilir (uygulama yetkiyi buradan anlar)
+    match /yetkililer/{email} {
+      allow read: if request.auth != null
+        && request.auth.token.email == email
+        && request.auth.token.email_verified == true;
+      allow write: if false;
+
+      // Bildirim alınan cihazlar (FCM)
+      match /cihazlar/{cihazId} {
+        allow read, delete: if yetkili() && request.auth.token.email == email;
+        allow create, update: if yetkili() && request.auth.token.email == email
+          && request.resource.data.keys().hasAll(['token', 'eklendi', 'cihaz'])
+          && request.resource.data.keys().hasOnly(['token', 'eklendi', 'cihaz'])
+          && str(request.resource.data.token, 1, 4096)
+          && str(request.resource.data.cihaz, 0, 80)
+          && request.resource.data.eklendi == request.time;
+      }
+    }
+
+    // Siteye yapılan değişikliklerin kaydı (yalnızca sunucu fonksiyonları yazar)
+    match /islemler/{id} {
+      allow read: if yetkili();
+      allow write: if false;
     }
 
     // Aynı oturumdan en fazla dakikada 1 başvuru

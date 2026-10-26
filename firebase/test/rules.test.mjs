@@ -176,3 +176,105 @@ describe('Storage: fotoğraf yükleme', () => {
     await assertFails(ref.delete());
   });
 });
+
+describe('yönetim', () => {
+  const YETKILI = 'hasankurulurofficial@gmail.com';
+  const DIGER_YETKILI = 'akdemirh540@gmail.com';
+  const google = (uid, email, over = {}) =>
+    Object.assign(env.authenticatedContext(uid, { email, email_verified: true, firebase: { sign_in_provider: 'google.com' }, ...over }), { uid });
+  const yetkili = () => google('yetkiliuid1234567890', YETKILI);
+  const digerYetkili = () => google('digeruid12345678901', DIGER_YETKILI);
+  const kayitsiz = () => google('kayitsizuid123456789', 'kayitsiz@ornek.com');
+  const dogrulanmamis = () => google('dogrulanmamisuid1234', YETKILI, { email_verified: false });
+  const anonim = () => user();
+  let id;
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await db.doc(`yetkililer/${YETKILI}`).set({ ad: 'Hasan' });
+      await db.doc(`yetkililer/${DIGER_YETKILI}`).set({ ad: 'Akdemir' });
+      id = (await db.collection('basvurular').add({ ...valid(), createdAt: new Date() })).id;
+      await db.doc(`basvurular/${id}/notlar/n1`).set({ metin: 'Diğerinin notu', yazan: DIGER_YETKILI, tarih: new Date() });
+      await db.doc('islemler/i1').set({ kim: YETKILI, ne: 'ekle', ilanNo: 'AK-10008', commit: 'abc', tarih: new Date() });
+    });
+  });
+
+  test('yalnızca yetkili başvuruları okur', async () => {
+    await assertSucceeds(yetkili().firestore().doc(`basvurular/${id}`).get());
+    await assertSucceeds(yetkili().firestore().collection('basvurular').where('status', '==', 'yeni').orderBy('createdAt', 'desc').get());
+    for (const ctx of [kayitsiz(), dogrulanmamis(), anonim()]) await assertFails(ctx.firestore().doc(`basvurular/${id}`).get());
+  });
+
+  test('yetkili yalnızca durum ve inceleme alanlarını kendi adıyla günceller', async () => {
+    const ref = (ctx) => ctx.firestore().doc(`basvurular/${id}`);
+    await assertSucceeds(ref(yetkili()).update({ status: 'inceleniyor', inceleme: { guncelleyen: YETKILI, guncellendi: ts() } }));
+    await assertSucceeds(ref(yetkili()).update({ status: 'reddedildi', inceleme: { guncelleyen: YETKILI, guncellendi: ts(), redSebebi: 'Bölge dışı' } }));
+    await assertFails(ref(yetkili()).update({ 'seller.phone': '+905000000000' }));
+    await assertFails(ref(yetkili()).update({ status: 'inceleniyor', inceleme: { guncelleyen: DIGER_YETKILI, guncellendi: ts() } }));
+    await assertFails(ref(yetkili()).update({ status: 'inceleniyor', inceleme: { guncelleyen: YETKILI, guncellendi: new Date() } }));
+    await assertFails(ref(yetkili()).update({ status: 'yayinda', inceleme: { guncelleyen: YETKILI, guncellendi: ts() } }));
+    await assertFails(ref(yetkili()).update({ status: 'inceleniyor', inceleme: { guncelleyen: YETKILI, guncellendi: ts(), html: '<b>' } }));
+    await assertFails(ref(yetkili()).update({ status: 'reddedildi', inceleme: { guncelleyen: YETKILI, guncellendi: ts(), redSebebi: 'x'.repeat(301) } }));
+    await assertFails(ref(kayitsiz()).update({ status: 'inceleniyor', inceleme: { guncelleyen: 'kayitsiz@ornek.com', guncellendi: ts() } }));
+    await assertFails(ref(yetkili()).delete());
+  });
+
+  test('notlar: yetkili ekler ve okur, yalnızca kendi notunu siler, not değiştirilemez', async () => {
+    const notlar = (ctx) => ctx.firestore().collection(`basvurular/${id}/notlar`);
+    await assertSucceeds(notlar(yetkili()).doc('n2').set({ metin: 'Yarın yerinde bakılacak', yazan: YETKILI, tarih: ts() }));
+    await assertSucceeds(notlar(yetkili()).get());
+    await assertFails(notlar(yetkili()).doc('n3').set({ metin: 'Başkası adına', yazan: DIGER_YETKILI, tarih: ts() }));
+    await assertFails(notlar(yetkili()).doc('n4').set({ metin: '', yazan: YETKILI, tarih: ts() }));
+    await assertFails(notlar(yetkili()).doc('n1').delete());
+    await assertFails(notlar(yetkili()).doc('n2').update({ metin: 'değişti' }));
+    await assertSucceeds(notlar(yetkili()).doc('n2').delete());
+    await assertFails(notlar(kayitsiz()).get());
+    await assertFails(notlar(kayitsiz()).doc('n5').set({ metin: 'x', yazan: 'kayitsiz@ornek.com', tarih: ts() }));
+  });
+
+  test('cihazlar: yetkili yalnızca kendi altına yazar ve siler', async () => {
+    const cihaz = { token: 'fcm-token', eklendi: ts(), cihaz: 'Chrome Android' };
+    await assertSucceeds(yetkili().firestore().doc(`yetkililer/${YETKILI}/cihazlar/c1`).set(cihaz));
+    await assertSucceeds(yetkili().firestore().doc(`yetkililer/${YETKILI}/cihazlar/c1`).delete());
+    await assertFails(yetkili().firestore().doc(`yetkililer/${DIGER_YETKILI}/cihazlar/c1`).set(cihaz));
+    await assertFails(yetkili().firestore().doc(`yetkililer/${YETKILI}/cihazlar/c2`).set({ ...cihaz, fazla: 1 }));
+    await assertFails(kayitsiz().firestore().doc(`yetkililer/kayitsiz@ornek.com/cihazlar/c1`).set(cihaz));
+  });
+
+  test('yetkililer: kişi yalnızca kendi kaydını okur, kimse yazamaz', async () => {
+    await assertSucceeds(yetkili().firestore().doc(`yetkililer/${YETKILI}`).get());
+    await assertFails(yetkili().firestore().doc(`yetkililer/${DIGER_YETKILI}`).get());
+    await assertFails(yetkili().firestore().doc(`yetkililer/${YETKILI}`).set({ ad: 'x' }));
+    await assertFails(kayitsiz().firestore().doc('yetkililer/kayitsiz@ornek.com').set({ ad: 'x' }));
+  });
+
+  test('işlem kaydı: yetkili okur, kimse yazamaz', async () => {
+    await assertSucceeds(yetkili().firestore().collection('islemler').get());
+    await assertFails(yetkili().firestore().collection('islemler').add({ kim: YETKILI }));
+    await assertFails(kayitsiz().firestore().collection('islemler').get());
+  });
+
+  const webp = (n) => {
+    const b = new Uint8Array(n);
+    b.set([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50]);
+    return b;
+  };
+  const put = (ctx, path) => ctx.storage().ref(path).put(webp(1024), { contentType: 'image/webp' });
+
+  test('Storage: yetkili kendi yönetim klasörüne yükler, yetkisiz yükleyemez', async () => {
+    await assertSucceeds(put(yetkili(), 'yonetim/yetkiliuid1234567890/abcdefghijklmnop1234.webp'));
+    await assertFails(put(yetkili(), 'yonetim/baskauid/abcdefghijklmnop1234.webp'));
+    await assertFails(put(kayitsiz(), 'yonetim/kayitsizuid123456789/abcdefghijklmnop1234.webp'));
+    await assertFails(put(dogrulanmamis(), 'yonetim/dogrulanmamisuid1234/abcdefghijklmnop1234.webp'));
+  });
+
+  test('Storage: yetkili başvuru fotoğraflarını okur, anonim okuyamaz', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await ctx.storage().ref(`basvurular/${UID}/abcdefghijklmnop5678.webp`).put(webp(100), { contentType: 'image/webp' });
+    });
+    await assertSucceeds(yetkili().storage().ref(`basvurular/${UID}/abcdefghijklmnop5678.webp`).getMetadata());
+    await assertFails(anonim().storage().ref(`basvurular/${UID}/abcdefghijklmnop5678.webp`).getMetadata());
+    await assertFails(kayitsiz().storage().ref(`basvurular/${UID}/abcdefghijklmnop5678.webp`).getMetadata());
+  });
+});
