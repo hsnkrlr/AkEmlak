@@ -2,7 +2,7 @@
  * Ak Emlak — ilan başvurusu arka plan işleri
  *
  *  basvuruKontrolVeBildirim : yeni başvuruda fotoğrafları doğrular, şüpheli gönderimi işaretler,
- *                             alıcı listesine e-posta (fotoğraflar ekli) gönderir.
+ *                             yetkililerin telefonlarına bildirim ve alıcı listesine e-posta (fotoğraflar ekli) gönderir.
  *  gunlukTemizlik           : 2 yıldan eski başvuruları ve başvuruya bağlanmamış fotoğrafları her gece siler.
  *  ilanlariGetir, ilanKaydet, ilanIslem : yönetim uygulaması (bkz. yonetim.ts)
  *
@@ -19,6 +19,8 @@ import { initializeApp } from 'firebase-admin/app';
 import { FieldValue, Timestamp, getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import nodemailer from 'nodemailer';
+import { getMessaging } from 'firebase-admin/messaging';
+import { bildirimGonder, TYPE_LABEL } from './push';
 import { isImage } from './resim';
 
 export * from './yonetim';
@@ -29,16 +31,6 @@ initializeApp();
 const GMAIL_APP_PASSWORD = defineSecret('GMAIL_APP_PASSWORD');
 const SITE_NAME = 'Ak Emlak';
 
-const TYPE_LABEL: Record<string, string> = {
-  daire: 'Daire',
-  mustakil: 'Müstakil Ev',
-  villa: 'Villa',
-  arsa: 'Arsa',
-  tarla: 'Tarla / Bahçe',
-  isyeri: 'Dükkan / İş Yeri',
-  arac: 'Araç',
-  diger: 'Diğer',
-};
 
 interface Application {
   number: string;
@@ -148,7 +140,23 @@ export const basvuruKontrolVeBildirim = onDocumentCreated(
       return;
     }
 
-    // 4) E-posta bildirimi
+    // 4) Yetkililerin telefonlarına bildirim (hata e-postayı engellemez)
+    try {
+      const cihazlar = await db.collectionGroup('cihazlar').get();
+      const tokenlar = cihazlar.docs
+        .filter((d) => d.ref.parent.parent?.parent.id === 'yetkililer' && typeof d.get('token') === 'string')
+        .map((d) => ({ ref: d.ref, token: d.get('token') as string }));
+      const r = await bildirimGonder({
+        basvuru: { id: snap.id, number: app.number, status: 'yeni', listing: app.listing },
+        tokenlar,
+        gonder: (m) => getMessaging().sendEach(m as Parameters<ReturnType<typeof getMessaging>['sendEach']>[0]),
+      });
+      logger.info('Telefon bildirimi', r);
+    } catch (e) {
+      logger.error('Telefon bildirimi gönderilemedi', e);
+    }
+
+    // 5) E-posta bildirimi
     const settings = (await db.doc('ayarlar/bildirim').get()).data() ?? {};
     const to = (Array.isArray(settings.alicilar) ? settings.alicilar : []).filter((e: unknown) => typeof e === 'string' && e.includes('@'));
     const from = typeof settings.gonderen === 'string' ? settings.gonderen : '';
