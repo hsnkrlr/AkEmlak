@@ -240,6 +240,7 @@ export default function Apply() {
       setView({ name: 'done', number, resubmission: resubmission.isResubmission });
       scrollTop();
     } catch (err) {
+      console.error('Başvuru gönderilemedi:', err);
       setSubmitError(
         err instanceof fb.RateLimitError
           ? 'Başvurunuz kabul edilmedi. Az önce bir başvuru gönderdiyseniz lütfen bir dakika bekleyip tekrar deneyin.'

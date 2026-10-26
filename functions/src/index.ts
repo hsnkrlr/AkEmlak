@@ -206,7 +206,7 @@ export const basvuruKontrolVeBildirim = onDocumentCreated(
       ${l.description ? `<h3>Açıklama</h3><p style="white-space:pre-line">${esc(l.description)}</p>` : ''}
     </div>`;
 
-    const transport = nodemailer.createTransport({ service: 'gmail', auth: { user: from, pass: GMAIL_APP_PASSWORD.value() } });
+    const transport = nodemailer.createTransport({ service: 'gmail', auth: { user: from, pass: GMAIL_APP_PASSWORD.value().replace(/\s+/g, '') } });
     await transport.sendMail({
       from: `"${SITE_NAME} Başvuru" <${from}>`,
       to,
