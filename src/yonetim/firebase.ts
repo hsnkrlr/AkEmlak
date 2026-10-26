@@ -33,8 +33,8 @@ export const functions = getFunctions(yonetimApp, 'europe-west3');
 
 if (USE_EMULATOR) {
   // Yalnızca emülatör test derlemesi: sandbox'ta Google yönlendirme sayfası açılamadığı için sahte Google kimliğiyle giriş
-  (window as Window & { __testGiris?: (email: string) => Promise<unknown> }).__testGiris = (email: string) =>
-    signInWithCredential(auth, GoogleAuthProvider.credential(JSON.stringify({ sub: email, email, email_verified: true })));
+  (window as Window & { __testGiris?: (email: string, dogrulanmis?: boolean) => Promise<unknown> }).__testGiris = (email: string, dogrulanmis = true) =>
+    signInWithCredential(auth, GoogleAuthProvider.credential(JSON.stringify({ sub: `${email}-${dogrulanmis}`, email, email_verified: dogrulanmis })));
   connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
   connectFirestoreEmulator(db, '127.0.0.1', 8080);
   connectStorageEmulator(storage, '127.0.0.1', 9199);

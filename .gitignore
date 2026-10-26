@@ -8,3 +8,4 @@ dist
 *-debug.log
 .firebase/
 functions/lib
+dist-e2e-shots

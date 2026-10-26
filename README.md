@@ -1,11 +1,13 @@
 # Ak Emlak — Emlak İlan Sitesi
 
-Backend'siz, statik bir emlak ilan sitesi (React + Vite + TypeScript). İlanlar tek bir dosyada, **`public/data.json`** içinde elle tutulur.
+Statik bir emlak ilan sitesi (React + Vite + TypeScript). İlanlar tek bir dosyada, **`public/data.json`** içinde tutulur; elle ya da yönetim uygulamasından (`/yonetim`) düzenlenir.
 
 | Adres | İçerik |
 |---|---|
 | `/` | İlan listesi, arama ve filtreler |
 | `/detay/{ilan-adi}` | İlan detayı, fotoğraf galerisi ve WhatsApp iletişim |
+| `/ilan-basvurusu` | İlan başvuru formu (Firebase) |
+| `/yonetim` | Yönetim uygulaması (yalnızca yetkililer) |
 
 ## Kurulum
 
@@ -131,7 +133,7 @@ Site yayına girdikten sonra Google Search Console'a `https://alanadiniz/sitemap
 
 **Güvenlik**
 
-- Ziyaretçiler anonim oturumla yalnızca **yeni başvuru oluşturabilir**. Okuma, değiştirme ve silme kapalıdır.
+- Ziyaretçiler anonim oturumla yalnızca **yeni başvuru oluşturabilir**. Okuma, değiştirme ve silme kapalıdır. Başvuruları yalnızca yetkililer (yönetim uygulaması) okur.
 - Kurallar alan beyaz listesini, telefon biçimini, KVKK onayını, sunucu saatini ve kimliği denetler. Aynı oturumdan dakikada en fazla 1 başvuru yapılabilir.
 - Fotoğraflar yalnızca kişinin kendi klasörüne, en fazla 3 MB'lık JPEG/WEBP olarak yüklenebilir.
 - **App Check (reCAPTCHA Enterprise):** İstekler yalnızca sitenizden gelen gerçek tarayıcılardan kabul edilir.
@@ -150,6 +152,44 @@ npm run test:rules                    # güvenlik kuralı testleri (emülatör a
 VITE_FIREBASE_EMULATOR=1 npm run dev  # formu emülatöre bağlı çalıştır
 npx firebase deploy --only firestore,storage   # kuralları yayınla
 npx firebase deploy --only functions           # fonksiyonları yayınla
+```
+
+## Yönetim uygulaması (`/yonetim`)
+
+Telefona kurulabilen (ana ekrana eklenen) yönetim uygulaması. Başvuruları okur, not düşer, satıcıyı arar/WhatsApp'tan yazar, başvuruyu ilana dönüştürür ya da reddeder; doğrudan ilan girer, ilanları düzenler, satıldı/kiralandı işaretler, gizler, fırsat yapar, siler. Yeni başvuruda telefona bildirim gelir.
+
+**Kurulum (telefonda)**
+
+1. `https://ak-emlak.vercel.app/yonetim` adresini açıp **Google ile giriş yap**.
+2. **iPhone (Safari):** Paylaş → “Ana Ekrana Ekle”. **Android (Chrome):** ⋮ → “Ana ekrana ekle / Uygulamayı yükle”.
+3. Ana ekrandaki simgeden açın → **Ayarlar → Bu cihazda bildirimleri aç**. (iPhone'da bildirim yalnızca ana ekrandan açılan uygulamada çalışır, iOS 16.4+.)
+
+**Kimler girebilir**
+
+- Yalnızca Firestore'daki **`yetkililer`** koleksiyonunda belgesi olan, Google ile giriş yapmış ve e-postası doğrulanmış hesaplar. Belge kimliği e-posta adresidir (ör. `yetkililer/hasankurulurofficial@gmail.com`, içerik `{ ad: "Hasan" }`).
+- **Yeni yetkili eklemek:** Firebase konsolu → Firestore → `yetkililer` → belge ekle (kimlik = e-posta). **Kaldırmak:** belgeyi silin. Uygulamadan kimse kendini ekleyemez.
+- Listede olmayan biri Google ile giriş yapsa bile hiçbir veriyi göremez, hiçbir şeyi değiştiremez (Firestore/Storage kuralları ve sunucu fonksiyonları ayrıca denetler; App Check açık).
+
+**Siteye nasıl yansır**
+
+- “Siteye ekle”, “Kaydet”, “Satıldı”, “Gizle”, “Sil” işlemleri sunucu fonksiyonu üzerinden GitHub'daki `public/data.json` ve `public/img/` dosyalarını **tek commit** ile günceller; Vercel siteyi 1–2 dakikada yeniden yayınlar. Commit mesajında işlemi yapan kişi yazar (`Yönetim: AK-10008 eklendi (…@gmail.com)`), Firestore `islemler` koleksiyonunda da kayıt tutulur.
+- Fotoğraflar sunucuda en fazla 1600 px webp olarak yeniden kodlanır, konum (EXIF/GPS) bilgisi silinir. Silinen ilanın başka ilanda kullanılmayan fotoğrafları da depodan kaldırılır.
+- Aynı anda iki kişi kaydederse biri diğerinin değişikliğini ezmez (çakışmada güncel dosya okunup yeniden uygulanır).
+- `data.json`'u yine elle de düzenleyebilirsiniz; yönetim uygulaması her açılışta güncel dosyayı GitHub'dan okur.
+
+**GitHub anahtarı**
+
+Fonksiyonlar, Secret Manager'daki **`GITHUB_TOKEN`** ile yazar: yalnızca `hsnkrlr/AkEmlak` deposu, *Contents: Read and write*, 1 yıl geçerli (fine-grained token). Süresi dolunca uygulama “GitHub anahtarının süresi dolmuş” der: GitHub'da yeni token oluşturup Secret Manager'a yeni sürüm olarak ekleyin ve `npx firebase deploy --only functions` çalıştırın. Yazılan dal `GITHUB_BRANCH` parametresidir (varsayılan: Vercel'in yayın dalı).
+
+**Giriş teknik notu:** Google girişi yönlendirmeyle yapılır; giriş sayfası `vercel.json` ile sitenin kendi adresine (`/__/auth/`) aktarılır. Google Cloud → OAuth istemcisinde `https://ak-emlak.vercel.app/__/auth/handler` yönlendirme adresi kayıtlı olmalıdır.
+
+**Test**
+
+```bash
+npm run test:unit                      # yönetim arayüzü saf mantık testleri
+(cd functions && npm test)             # sunucu mantığı (data.json, GitHub, yetki, fotoğraf, bildirim)
+npm run test:rules                     # güvenlik kuralları (emülatör açıkken)
+node scripts/e2e-yonetim.mjs           # uçtan uca (hazırlık adımları dosyanın başında)
 ```
 
 ## Google Analytics
