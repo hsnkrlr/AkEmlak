@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { SITE } from '../config';
+import { resetConsent } from '../lib/consent';
 import { generalWhatsappLink } from '../lib/whatsapp';
 import { IconShield, IconWhatsapp } from './Icons';
 
@@ -27,6 +28,9 @@ export function Header() {
         <Logo />
         <nav className="header-nav" aria-label="Ana menü">
           <Link to="/#ilanlar">İlanlar</Link>
+          <Link to="/ilan-basvurusu" className="btn btn-ghost btn-sm nav-apply">
+            İlan Ver
+          </Link>
           <a className="btn btn-wa btn-sm" href={generalWhatsappLink()} target="_blank" rel="noopener noreferrer">
             <IconWhatsapp /> <span>Bize Yazın</span>
           </a>
@@ -70,7 +74,16 @@ export function Footer() {
         </div>
       </div>
       <div className="container footer-bottom muted small">
-        © {year} {SITE.name}. Tüm hakları saklıdır.
+        <span>
+          © {year} {SITE.name}. Tüm hakları saklıdır.
+        </span>
+        <nav className="footer-links" aria-label="Alt menü">
+          <Link to="/ilan-basvurusu">İlan Ver</Link>
+          <Link to="/kvkk">KVKK ve Çerezler</Link>
+          <button type="button" className="link-btn" onClick={resetConsent}>
+            Çerez tercihleri
+          </button>
+        </nav>
       </div>
     </footer>
   );

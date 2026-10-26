@@ -7,15 +7,19 @@
     "dev": "vite",
     "build": "tsc --noEmit -p . && vite build && node scripts/postbuild.mjs",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit -p ."
+    "typecheck": "tsc --noEmit -p .",
+    "test:rules": "node --test firebase/test/rules.test.mjs",
+    "emulators": "firebase emulators:start --project demo-akemlak --only auth,firestore,storage,functions"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.1.0",
+    "firebase": "^13.1.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.28.0"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^6.0.0",
     "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",

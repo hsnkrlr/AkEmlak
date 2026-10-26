@@ -1,0 +1,109 @@
+rules_version = '2';
+
+// Ak Emlak — ilan başvuruları
+// Ziyaretçi (anonim oturum) yalnızca kendi adına YENİ başvuru oluşturabilir.
+// Hiçbir ziyaretçi başvuruları okuyamaz, değiştiremez, silemez; başvurular yalnızca
+// Firebase konsolundan ve sunucu fonksiyonlarından (yönetici yetkisiyle) görülür.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function str(v, min, max) {
+      return v is string && v.size() >= min && v.size() <= max;
+    }
+    function optStr(m, k, max) {
+      return !(k in m) || str(m[k], 1, max);
+    }
+    function optNum(m, k, max) {
+      return !(k in m) || ((m[k] is int || m[k] is float) && m[k] >= 0 && m[k] <= max);
+    }
+    function optEnum(m, k, values) {
+      return !(k in m) || m[k] in values;
+    }
+    function appNumber(v) {
+      return v is string && v.matches('^B-[A-Z0-9]{6}$');
+    }
+
+    function validSeller(s) {
+      return s is map
+        && s.keys().hasAll(['name', 'phone'])
+        && s.keys().hasOnly(['name', 'phone', 'email'])
+        && str(s.name, 3, 80)
+        // Türkiye cep telefonu: +905XXXXXXXXX
+        && s.phone is string && s.phone.matches('^[+]905[0-9]{9}$')
+        && (!('email' in s) || (str(s.email, 6, 120) && s.email.matches('^[^@ ]+@[^@ ]+[.][^@ ]+$')));
+    }
+
+    function validListing(l) {
+      return l is map
+        && l.keys().hasAll(['type'])
+        && l.keys().hasOnly([
+          'type', 'deal', 'city', 'district', 'neighborhood', 'address', 'price',
+          'grossM2', 'netM2', 'rooms', 'floor', 'buildingAge', 'bathrooms', 'heating',
+          'furnished', 'inSite', 'zoning', 'deed', 'parcel',
+          'brand', 'model', 'modelYear', 'km', 'fuel', 'gear',
+          'description', 'features'
+        ])
+        && l.type in ['daire', 'mustakil', 'villa', 'arsa', 'tarla', 'isyeri', 'arac', 'diger']
+        && optEnum(l, 'deal', ['satilik', 'kiralik'])
+        && optStr(l, 'city', 60) && optStr(l, 'district', 60) && optStr(l, 'neighborhood', 80)
+        && optStr(l, 'address', 300)
+        && optNum(l, 'price', 100000000000)
+        // Ayrıntı alanlarının (m², oda, kat, araç bilgileri…) tür/uzunluk kontrolü, kural ifade sınırını (1000)
+        // aşmamak için sunucu fonksiyonunda yapılır; hatalı alan işaretlenir ve kısaltılır.
+        && optStr(l, 'description', 3000)
+        && (!('features' in l) || (l.features is list && l.features.size() <= 20));
+    }
+
+    function validResubmission(r) {
+      return r is map
+        && r.keys().hasOnly(['isResubmission', 'of', 'original', 'revision'])
+        && r.keys().hasAll(['isResubmission', 'of', 'original', 'revision'])
+        && r.isResubmission is bool
+        && r.revision is int && r.revision >= 0 && r.revision <= 100
+        && (r.of == null || appNumber(r.of))
+        && (r.original == null || appNumber(r.original))
+        // Tekrar gönderimde önceki başvuru numarası ve sürüm zorunlu, ilk gönderimde boş
+        && (r.isResubmission == (r.of != null))
+        && (r.isResubmission == (r.revision > 0));
+    }
+
+    match /basvurular/{id} {
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasAll(['number', 'uid', 'createdAt', 'status', 'seller', 'listing', 'photos', 'resubmission', 'consent'])
+        && request.resource.data.keys().hasOnly(['number', 'uid', 'createdAt', 'status', 'seller', 'listing', 'photos', 'resubmission', 'consent'])
+        && appNumber(request.resource.data.number)
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.status == 'yeni'
+        && validSeller(request.resource.data.seller)
+        && validListing(request.resource.data.listing)
+        // Fotoğraf yolları ve dosyaları sunucu fonksiyonunda ayrıca doğrulanır
+        && request.resource.data.photos is list && request.resource.data.photos.size() <= 10
+        && validResubmission(request.resource.data.resubmission)
+        && request.resource.data.consent is map
+        && request.resource.data.consent.keys().hasOnly(['kvkk', 'version'])
+        && request.resource.data.consent.kvkk == true
+        && str(request.resource.data.consent.version, 1, 20)
+        // Hız sınırı: başvuru, aynı yazımda güncellenen /limits/{uid} kaydıyla birlikte yapılmalı
+        && getAfter(/databases/$(database)/documents/limits/$(request.auth.uid)).data.lastAt == request.time;
+      allow read, update, delete: if false;
+    }
+
+    // Aynı oturumdan en fazla dakikada 1 başvuru
+    match /limits/{uid} {
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['lastAt'])
+        && request.resource.data.lastAt == request.time;
+      allow update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['lastAt'])
+        && request.resource.data.lastAt == request.time
+        && resource.data.lastAt < request.time - duration.value(60, 's');
+      allow read, delete: if false;
+    }
+
+    // Diğer her şey (örn. /ayarlar) istemcilere kapalı
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

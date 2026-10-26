@@ -259,12 +259,35 @@ export function seoPrerender(): Plugin {
         );
       }
 
+      // Sabit sayfalar: ilan başvurusu ve KVKK
+      const staticPages = [
+        {
+          path: '/ilan-basvurusu',
+          title: `İlan Başvurusu | ${SITE.name}`,
+          description: `Evinizi, arsanızı veya iş yerinizi ${SITE.name} ile satmak ya da kiraya vermek için birkaç dakikada başvurun. Fotoğraf ekleyin, biz sizi arayalım.`,
+          body: `<main class="container section prerender"><h1>${esc(SITE.name)} – ilan başvurusu</h1><p>Mülkünüzü satmak veya kiraya vermek için başvuru formunu doldurun.</p></main>`,
+        },
+        {
+          path: '/kvkk',
+          title: `KVKK Aydınlatma Metni ve Çerez Politikası | ${SITE.name}`,
+          description: `${SITE.name} kişisel verilerin korunması aydınlatma metni ve çerez politikası.`,
+          body: `<main class="container section prerender"><h1>KVKK Aydınlatma Metni ve Çerez Politikası</h1></main>`,
+        },
+      ];
+      for (const page of staticPages) {
+        const dir = resolve(outDir, page.path.slice(1));
+        mkdirSync(dir, { recursive: true });
+        writeFileSync(resolve(dir, 'index.html'), renderHtml(template, origin, { ...page, type: 'website', ld: [] }));
+      }
+
       if (origin) {
         const day = (iso: string) => (iso ? `<lastmod>${iso.slice(0, 10)}</lastmod>` : '');
         const newest = visible.map((l) => l.createdAt).sort().pop() ?? '';
         const urls = [
           `<url><loc>${esc(origin)}/</loc>${day(newest)}<changefreq>daily</changefreq><priority>1.0</priority></url>`,
           ...visible.map((l) => `<url><loc>${esc(`${origin}/detay/${l.slug}`)}</loc>${day(l.createdAt)}<priority>0.8</priority></url>`),
+          `<url><loc>${esc(origin)}/ilan-basvurusu</loc><priority>0.7</priority></url>`,
+          `<url><loc>${esc(origin)}/kvkk</loc><priority>0.2</priority></url>`,
         ];
         writeFileSync(
           resolve(outDir, 'sitemap.xml'),

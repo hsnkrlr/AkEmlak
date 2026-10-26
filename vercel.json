@@ -5,7 +5,15 @@
       "destination": "/detay/:slug/index.html"
     },
     {
-      "source": "/((?!assets/|img/|detay/|data\\.json|og\\.jpg|sitemap\\.xml|favicon\\.svg|robots\\.txt|ga-init\\.js).*)",
+      "source": "/ilan-basvurusu",
+      "destination": "/ilan-basvurusu/index.html"
+    },
+    {
+      "source": "/kvkk",
+      "destination": "/kvkk/index.html"
+    },
+    {
+      "source": "/((?!assets/|img/|detay/|ilan-basvurusu|kvkk|data\\.json|og\\.jpg|sitemap\\.xml|favicon\\.svg|robots\\.txt|ga-init\\.js).*)",
       "destination": "/index.html"
     }
   ],

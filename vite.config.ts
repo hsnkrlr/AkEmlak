@@ -2,19 +2,33 @@ import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { seoPrerender } from './scripts/seo-plugin';
 
-/** İçerik Güvenlik Politikası: yalnızca kendi alan adımızdan kod/görsel yüklenir. */
+// Firebase (başvuru formu): Firestore, Storage, anonim oturum, App Check (reCAPTCHA Enterprise)
+const FIREBASE_CONNECT = [
+  'https://firestore.googleapis.com',
+  'https://firebasestorage.googleapis.com',
+  'https://identitytoolkit.googleapis.com',
+  'https://securetoken.googleapis.com',
+  'https://firebaseappcheck.googleapis.com',
+  'https://content-firebaseappcheck.googleapis.com',
+  'https://www.google.com',
+];
+// Yalnızca emülatörle test derlemesinde (VITE_FIREBASE_EMULATOR=1) yerel emülatörlere izin verilir
+const EMULATOR_CONNECT = process.env.VITE_FIREBASE_EMULATOR === '1' ? ['http://127.0.0.1:9099', 'http://127.0.0.1:8080', 'http://127.0.0.1:9199'] : [];
+
+/** İçerik Güvenlik Politikası: kod ve bağlantılar yalnızca kendi alan adımıza ve gerekli Google hizmetlerine izinli. */
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' https://*.googletagmanager.com",
+  "script-src 'self' https://*.googletagmanager.com https://www.google.com https://www.gstatic.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://*.google-analytics.com https://*.googletagmanager.com",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com",
+  ["connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com", ...FIREBASE_CONNECT, ...EMULATOR_CONNECT].join(' '),
   "object-src 'none'",
   "base-uri 'none'",
   "form-action 'self'",
-  "frame-src 'none'",
-  "worker-src 'none'",
+  // reCAPTCHA Enterprise (App Check) görünmez bir iframe kullanır
+  'frame-src https://www.google.com https://recaptcha.google.com',
+  "worker-src 'self' blob:",
   "manifest-src 'self'",
 ].join('; ');
 

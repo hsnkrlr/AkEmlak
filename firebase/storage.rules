@@ -1,0 +1,21 @@
+rules_version = '2';
+
+// Ak Emlak — başvuru fotoğrafları
+// Ziyaretçi yalnızca kendi klasörüne, küçültülmüş resim yükleyebilir. Okuma/silme/değiştirme kapalı;
+// fotoğraflar yalnızca Firebase konsolundan ve bildirim e-postasından görülür.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /basvurular/{uid}/{file} {
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && file.matches('^[A-Za-z0-9_-]{16,40}[.](webp|jpg)$')
+        && request.resource.size > 0
+        && request.resource.size < 3 * 1024 * 1024
+        && request.resource.contentType.matches('image/(webp|jpeg)');
+      allow read, update, delete: if false;
+    }
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
