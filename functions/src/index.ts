@@ -130,10 +130,17 @@ export const basvuruKontrolVeBildirim = onDocumentCreated(
     if (invalid.length) flags.push(`gecersiz-alan:${invalid.join(',')}`);
 
     // 3) Aynı oturumdan kısa sürede çok başvuru → şüpheli (e-posta gönderilmez)
-    const since = Timestamp.fromMillis(Date.now() - 10 * 60 * 1000);
-    const recent = await db.collection('basvurular').where('uid', '==', app.uid).where('createdAt', '>', since).count().get();
-    const spam = recent.data().count > 4;
-    if (spam) flags.push('cok-sik-gonderim');
+    // (Bu kontrol başarısız olsa da bildirim gönderilir; başvuru hiçbir durumda sessizce kaybolmaz.)
+    let spam = false;
+    try {
+      const since = Timestamp.fromMillis(Date.now() - 10 * 60 * 1000);
+      const recent = await db.collection('basvurular').where('uid', '==', app.uid).where('createdAt', '>', since).count().get();
+      spam = recent.data().count > 4;
+      if (spam) flags.push('cok-sik-gonderim');
+    } catch (e) {
+      flags.push('hiz-kontrolu-yapilamadi');
+      logger.error('Hız kontrolü yapılamadı', e);
+    }
 
     await snap.ref.update({
       status: spam ? 'supheli' : 'yeni',
