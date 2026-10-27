@@ -11,7 +11,7 @@ Options -Indexes
     Header set X-Robots-Tag "noindex, nofollow"
     Header set Cache-Control "no-store"
   </If>
-  <FilesMatch "data\.json$">
+  <FilesMatch "(data\.json|ga-init\.js)$">
     Header set Cache-Control "no-cache"
   </FilesMatch>
 </IfModule>
