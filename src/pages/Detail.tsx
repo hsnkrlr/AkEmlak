@@ -10,6 +10,7 @@ import { Gallery } from '../components/Gallery';
 import { IconBack, IconLink, IconPin, IconWhatsapp } from '../components/Icons';
 import { PublicLayout, TrustNotice } from '../components/Layout';
 import { ListingCard } from '../components/ListingCard';
+import { Share } from '../components/Share';
 import { DEAL_LABEL, type Listing } from '../types';
 
 export default function Detail() {
@@ -158,7 +159,9 @@ export function DetailView({ listing: l, backTo = '/', backLabel = 'Tüm ilanlar
         </div>
 
         <aside className="detail-side">
-          <div className="panel sticky">
+          {/* Bilgi kutusu ve güvenlik uyarısı birlikte sabitlenir; kaydırınca üst üste binmez */}
+          <div className="sticky side-stack">
+          <div className="panel">
             <div className="side-badges">
               <span className={`badge badge-${l.dealType}`}>{DEAL_LABEL[l.dealType]}</span>
               <span className="badge badge-soft">{categoryLabel(l)}</span>
@@ -178,9 +181,15 @@ export function DetailView({ listing: l, backTo = '/', backLabel = 'Tüm ilanlar
             <button type="button" className="btn btn-ghost btn-block" onClick={copy}>
               <IconLink width={18} height={18} /> {copied ? 'Bağlantı kopyalandı ✓' : 'İlan bağlantısını kopyala'}
             </button>
+            <Share url={listingUrl(l)} title={l.title} />
           </div>
           <TrustNotice compact />
+          </div>
         </aside>
+      </div>
+
+      <div className="mobile-only">
+        <Share url={listingUrl(l)} title={l.title} yuzen />
       </div>
 
       <div className="mobile-cta">
