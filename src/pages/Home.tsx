@@ -9,6 +9,8 @@ import { IconChat, IconSearch, IconShield, IconSpark, IconWhatsapp } from '../co
 import { ListingCard } from '../components/ListingCard';
 import { PublicLayout, TrustNotice } from '../components/Layout';
 import { categoryLabel, groupOf } from '../lib/format';
+import { aramaSayfalari, BOLGE } from '../lib/landing';
+import { Link } from 'react-router-dom';
 import { CATEGORY_GROUP, CATEGORY_LABEL, GROUP_LABEL, type Category, type CategoryGroup, type DealType, type Listing } from '../types';
 
 type Sort = 'yeni' | 'artan' | 'azalan';
@@ -194,6 +196,17 @@ export default function Home() {
               </a>
             </div>
           ))}
+      </section>
+
+      <section className="container section" aria-label={`${BOLGE} popüler aramalar`}>
+        <h2>{BOLGE}'nda popüler aramalar</h2>
+        <ul className="arama-linkleri">
+          {aramaSayfalari(all).map((p) => (
+            <li key={p.slug}>
+              <Link to={`/emlak/${p.slug}`}>{p.h1}</Link>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className="container section">

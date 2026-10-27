@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import Home from './pages/Home';
 import Detail from './pages/Detail';
 import Kvkk from './pages/Kvkk';
+import Landing from './pages/Landing';
 import { ConsentBanner } from './components/ConsentBanner';
 
 // Başvuru formu (ve Firebase kütüphaneleri) yalnızca o sayfa açılınca yüklenir
@@ -23,6 +24,7 @@ export default function App() {
           }
         />
         <Route path="/kvkk" element={<Kvkk />} />
+        <Route path="/emlak/:slug" element={<Landing />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <ConsentBanner />

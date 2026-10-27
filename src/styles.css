@@ -1639,3 +1639,21 @@ textarea {
     padding: 0 12px;
   }
 }
+
+/* Nurdağı arama sayfası bağlantıları */
+.arama-linkleri {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+}
+.arama-linkleri a {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgb(0 0 0 / 0.1);
+  background: #fff;
+  font-size: 0.9rem;
+  text-decoration: none;
+}

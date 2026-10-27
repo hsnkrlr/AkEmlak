@@ -194,7 +194,7 @@ node scripts/e2e-yonetim.mjs           # uçtan uca (hazırlık adımları dosya
 
 ## Google Analytics
 
-GA4 ölçüm kimliği `G-D2F1KZ11MT` (`public/ga-init.js`). **Analytics yalnızca ziyaretçi çerez bandında "Tümünü kabul et" derse yüklenir.** "Yalnızca zorunlu" seçilirse yüklenmez; tercih değiştirilirse Analytics çerezleri silinir. Sayfa geçişleri GA4'ün "geliştirilmiş ölçüm" özelliğiyle otomatik sayılır.
+GA4 ölçüm kimliği `G-11TW44M1QT` (`public/ga-init.js`). **Analytics yalnızca ziyaretçi çerez bandında "Tümünü kabul et" derse yüklenir.** "Yalnızca zorunlu" seçilirse yüklenmez; tercih değiştirilirse Analytics çerezleri silinir. Sayfa geçişleri GA4'ün "geliştirilmiş ölçüm" özelliğiyle otomatik sayılır.
 
 ## Güvenlik
 

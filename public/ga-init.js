@@ -1,7 +1,7 @@
 // Google Analytics (GA4) — KVKK gereği yalnızca ziyaretçi "Analitik çerezler"e izin verdiyse yüklenir.
 // Güvenlik politikası (CSP) satır içi betiğe izin vermediği için ayrı dosyadadır.
 (function () {
-  var ID = 'G-D2F1KZ11MT';
+  var ID = 'G-11TW44M1QT';
   // Başvuru formu bağlantıyı yazdıkça güncelliyor; Analytics'in bunu sayfa geçişi saymaması için özgün yöntem saklanır.
   window.akReplaceState = History.prototype.replaceState;
   var loaded = false;

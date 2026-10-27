@@ -19,6 +19,7 @@ import { SITE } from '../src/config';
 import { categoryLabel, fmtInt, formatLocation, formatPrice, groupOf, soldLabel, summaryFacts } from '../src/lib/format';
 import { parseData } from '../src/lib/schema';
 import { homeDescription, homeTitle, listingDescription, listingTitle, serviceArea } from '../src/lib/seo';
+import { aramaSayfalari } from '../src/lib/landing';
 import { DEAL_LABEL, type Listing } from '../src/types';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -237,7 +238,7 @@ export function seoPrerender(): Plugin {
           path: '/',
           type: 'website',
           ld: homeLd(visible, origin),
-          body: homeBody(visible),
+          body: homeBody(visible).replace('</main>', `<h2>Nurdağı popüler aramalar</h2><ul>${aramaSayfalari(visible).map((a) => `<li><a href="/emlak/${a.slug}">${esc(a.h1)}</a></li>`).join('')}</ul></main>`),
         }),
       );
 
@@ -255,6 +256,45 @@ export function seoPrerender(): Plugin {
             type: 'article',
             ld: listingLd(l, origin, description),
             body: listingBody(l),
+          }),
+        );
+      }
+
+      // Nurdağı arama sayfaları (tür ve mahalleye göre)
+      const aramalar = aramaSayfalari(visible);
+      const aramaLinkleri = `<h2>${esc(SITE.name)} – aramalar</h2><ul>${aramalar.map((a) => `<li><a href="/emlak/${a.slug}">${esc(a.h1)}</a></li>`).join('')}</ul>`;
+      for (const a of aramalar) {
+        const ilanlar = visible.filter(a.match);
+        const dir = resolve(outDir, 'emlak', a.slug);
+        mkdirSync(dir, { recursive: true });
+        writeFileSync(
+          resolve(dir, 'index.html'),
+          renderHtml(template, origin, {
+            title: a.title,
+            description: a.description,
+            path: `/emlak/${a.slug}`,
+            type: 'website',
+            ld: [
+              {
+                '@context': 'https://schema.org',
+                '@type': 'BreadcrumbList',
+                itemListElement: [
+                  { '@type': 'ListItem', position: 1, name: SITE.name, item: abs(origin, '/') },
+                  { '@type': 'ListItem', position: 2, name: a.h1, item: abs(origin, `/emlak/${a.slug}`) },
+                ],
+              },
+              {
+                '@context': 'https://schema.org',
+                '@type': 'ItemList',
+                name: a.h1,
+                itemListElement: ilanlar.map((l, i) => ({ '@type': 'ListItem', position: i + 1, url: abs(origin, `/detay/${l.slug}`), name: l.title })),
+              },
+            ],
+            body:
+              `<main class="container section prerender"><p><a href="/">${esc(SITE.name)}</a></p><h1>${esc(a.h1)}</h1>` +
+              a.intro.map((p) => `<p>${esc(p)}</p>`).join('') +
+              `<ul>${ilanlar.map((l) => `<li><a href="/detay/${l.slug}">${esc(l.title)}</a> – ${esc(summaryLine(l))}</li>`).join('')}</ul>` +
+              `<p>İletişim: WhatsApp ${esc(SITE.phoneDisplay)}</p>${aramaLinkleri}</main>`,
           }),
         );
       }
@@ -286,6 +326,7 @@ export function seoPrerender(): Plugin {
         const urls = [
           `<url><loc>${esc(origin)}/</loc>${day(newest)}<changefreq>daily</changefreq><priority>1.0</priority></url>`,
           ...visible.map((l) => `<url><loc>${esc(`${origin}/detay/${l.slug}`)}</loc>${day(l.createdAt)}<priority>0.8</priority></url>`),
+          ...aramalar.map((a) => `<url><loc>${esc(`${origin}/emlak/${a.slug}`)}</loc>${day(newest)}<changefreq>weekly</changefreq><priority>0.9</priority></url>`),
           `<url><loc>${esc(origin)}/ilan-basvurusu</loc><priority>0.7</priority></url>`,
           `<url><loc>${esc(origin)}/kvkk</loc><priority>0.2</priority></url>`,
         ];
@@ -297,7 +338,7 @@ export function seoPrerender(): Plugin {
       } else {
         console.warn('\n[seo] Site adresi bilinmiyor; canonical, og:url ve sitemap.xml üretilmedi. SITE_URL ortam değişkenini ya da src/config.ts → siteUrl alanını ayarlayın.');
       }
-      console.log(`[seo] ${visible.length} ilan sayfası üretildi${origin ? ` (${origin})` : ''}.`);
+      console.log(`[seo] ${visible.length} ilan, ${aramaSayfalari(visible).length} arama sayfası üretildi${origin ? ` (${origin})` : ''}.`);
     },
   };
 }
