@@ -1,39 +1,6 @@
 {
   "ilanlar": [
     {
-      "ilanNo": "AK-10009",
-      "baslik": "Nurdağı Esenyurt'ta Kiralık Daire",
-      "il": "Gaziantep",
-      "ilce": "Nurdağı",
-      "mahalle": "Esenyurt",
-      "odaSayisi": "3+1",
-      "kat": "2",
-      "isitma": "Merkezi",
-      "kategori": "daire",
-      "tur": "kiralik",
-      "paraBirimi": "TRY",
-      "durum": "yayinda",
-      "fiyat": 18500,
-      "brutM2": 95,
-      "netM2": 105,
-      "banyoSayisi": 1,
-      "binaYasi": 2,
-      "ozellikler": [
-        "Asansör",
-        "Otopark",
-        "Balkon",
-        "Doğalgaz",
-        "Ankastre Mutfak",
-        "Site İçinde"
-      ],
-      "fotograflar": [
-        "ak-10009-1-0869.webp",
-        "ak-10009-2-450f.webp"
-      ],
-      "tarih": "2026-10-27",
-      "firsat": true
-    },
-    {
       "ilanNo": "AK-10008",
       "baslik": "Nurdağı'da Kiralık Daire",
       "il": "Gaziantep",
