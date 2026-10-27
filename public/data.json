@@ -1,3 +1,33 @@
 {
-  "ilanlar": []
+  "ilanlar": [
+    {
+      "ilanNo": "AK-10001",
+      "baslik": "Nurdağı Kurudere'de Satılık Müstakil Ev",
+      "il": "Gaziantep",
+      "ilce": "Nurdağı",
+      "mahalle": "Kurudere",
+      "odaSayisi": "4+1",
+      "kat": "Bahçe Katı",
+      "isitma": "Doğalgaz Kombi",
+      "kategori": "mustakil",
+      "tur": "satilik",
+      "paraBirimi": "TRY",
+      "durum": "yayinda",
+      "fiyat": 8500000,
+      "brutM2": 210,
+      "netM2": 280,
+      "banyoSayisi": 2,
+      "binaYasi": 20,
+      "ozellikler": [
+        "Otopark",
+        "Doğalgaz",
+        "Balkon",
+        "Krediye Uygun"
+      ],
+      "fotograflar": [
+        "ak-10001-1-568d.webp"
+      ],
+      "tarih": "2026-10-27"
+    }
+  ]
 }
