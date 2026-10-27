@@ -36,7 +36,7 @@ export async function bildirimGonder(o: {
   const yer = [basvuru.listing.district, basvuru.listing.city].find((v) => typeof v === 'string' && v.trim()) as string | undefined;
   const title = `Yeni ilan başvurusu ${basvuru.number}`;
   const body = [TYPE_LABEL[basvuru.listing.type] ?? basvuru.listing.type, yer].filter(Boolean).join(' · ');
-  const link = `https://ak-emlak.vercel.app/yonetim/#/basvuru/${basvuru.id}`;
+  const link = `https://akemlak.akiletisim.com/yonetim/#/basvuru/${basvuru.id}`;
   const mesajlar = tokenlar.map((t) => ({
     token: t.token,
     notification: { title, body },

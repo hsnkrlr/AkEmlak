@@ -12,7 +12,7 @@ export const SITE = {
   city: 'Gaziantep',
   workingHours: 'Her gün 09:00 – 20:00',
   /** Boş bırakılırsa tarayıcıdaki alan adı kullanılır */
-  siteUrl: '',
+  siteUrl: 'https://akemlak.akiletisim.com',
 } as const;
 
 export function siteOrigin(): string {

@@ -21,9 +21,9 @@ test('mesaj başlığı, gövdesi ve bağlantısı', async () => {
   assert.equal(mesajlar[0].token, 't1');
   assert.equal(mesajlar[0].notification.title, 'Yeni ilan başvurusu B-7K2Q9X');
   assert.equal(mesajlar[0].notification.body, 'Müstakil Ev · Nurdağı');
-  assert.equal(mesajlar[0].webpush.fcmOptions.link, 'https://ak-emlak.vercel.app/yonetim/#/basvuru/abc123');
+  assert.equal(mesajlar[0].webpush.fcmOptions.link, 'https://akemlak.akiletisim.com/yonetim/#/basvuru/abc123');
   // Service worker bildirimi kendisi gösterir; bağlantıyı data alanından okur
-  assert.deepEqual(mesajlar[0].data, { link: 'https://ak-emlak.vercel.app/yonetim/#/basvuru/abc123', basvuruId: 'abc123' });
+  assert.deepEqual(mesajlar[0].data, { link: 'https://akemlak.akiletisim.com/yonetim/#/basvuru/abc123', basvuruId: 'abc123' });
 });
 
 test('geçersiz token silinir', async () => {

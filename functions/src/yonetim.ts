@@ -25,7 +25,7 @@ const GITHUB_TOKEN = defineSecret('GITHUB_TOKEN');
 const GITHUB_BRANCH = defineString('GITHUB_BRANCH', { default: 'ccr-02329762-r3ekpj' });
 const GITHUB_API = defineString('GITHUB_API', { default: 'https://api.github.com' });
 const GITHUB_REPO = 'hsnkrlr/AkEmlak';
-const SITE = 'https://ak-emlak.vercel.app';
+const SITE = 'https://akemlak.akiletisim.com';
 
 const SECENEK = {
   // index.ts'teki setGlobalOptions bu modül yüklendikten sonra çalışır; bölge burada açıkça verilir.

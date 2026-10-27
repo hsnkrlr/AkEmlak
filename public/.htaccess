@@ -6,6 +6,11 @@ Options -Indexes
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
   Header always set Content-Security-Policy "frame-ancestors 'none'"
+  # Yönetim uygulaması: arama motorlarına kapalı, önbelleğe alınmaz
+  <If "%{REQUEST_URI} =~ m#^/yonetim#">
+    Header set X-Robots-Tag "noindex, nofollow"
+    Header set Cache-Control "no-store"
+  </If>
   <FilesMatch "data\.json$">
     Header set Cache-Control "no-cache"
   </FilesMatch>

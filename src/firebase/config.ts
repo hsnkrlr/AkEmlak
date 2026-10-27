@@ -1,7 +1,7 @@
 /**
  * Firebase web uygulaması ayarları. Bu değerler gizli değildir (tarayıcıya zaten gönderilir);
  * güvenlik Firebase güvenlik kuralları, App Check ve API anahtarı kısıtlamalarıyla sağlanır
- * (anahtar yalnızca ak-emlak.vercel.app ve localhost'tan, yalnızca formun kullandığı servislerle çalışır).
+ * (anahtar yalnızca akemlak.akiletisim.com ve localhost'tan, yalnızca formun kullandığı servislerle çalışır).
  */
 export const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyCVTJaSVTAtTuDrskTwCBU_EcGkOAT722I',

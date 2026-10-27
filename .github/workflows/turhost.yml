@@ -1,0 +1,35 @@
+# Her değişiklikte (elle ya da yönetim uygulamasından) siteyi derleyip Turhost'a FTP ile yükler.
+# Gerekli GitHub secret'ları (Settings → Secrets and variables → Actions):
+#   FTP_SERVER   ör. ftp.akiletisim.com
+#   FTP_USERNAME cPanel FTP kullanıcısı
+#   FTP_PASSWORD FTP şifresi
+#   FTP_DIR      alt alan adının klasörü, sonunda / ile (ör. /akemlak.akiletisim.com/)
+name: Turhost'a yayınla
+on:
+  push:
+    branches: [ccr-02329762-r3ekpj]
+  workflow_dispatch:
+concurrency:
+  group: turhost
+  cancel-in-progress: false
+jobs:
+  yayinla:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        env:
+          SITE_URL: https://akemlak.akiletisim.com
+      - uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./dist/
+          server-dir: ${{ secrets.FTP_DIR }}
