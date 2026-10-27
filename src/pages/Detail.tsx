@@ -83,6 +83,8 @@ export function DetailView({ listing: l, backTo = '/', backLabel = 'Tüm ilanlar
   const group = groupOf(l);
   const [copied, setCopied] = useState(false);
   const wa = listingWhatsappLink(l);
+  // Paylaşım için kısa bilgi: "Kiralık Müstakil Ev · Nurdağı · ₺8.000 / ay"
+  const ozet = [`${DEAL_LABEL[l.dealType]} ${categoryLabel(l)}`, l.district || l.city, formatPrice(l)].filter(Boolean).join(' · ');
 
   const copy = async () => {
     try {
@@ -181,7 +183,7 @@ export function DetailView({ listing: l, backTo = '/', backLabel = 'Tüm ilanlar
             <button type="button" className="btn btn-ghost btn-block" onClick={copy}>
               <IconLink width={18} height={18} /> {copied ? 'Bağlantı kopyalandı ✓' : 'İlan bağlantısını kopyala'}
             </button>
-            <Share url={listingUrl(l)} title={l.title} />
+            <Share url={listingUrl(l)} title={l.title} ozet={ozet} />
           </div>
           <TrustNotice compact />
           </div>
@@ -189,7 +191,7 @@ export function DetailView({ listing: l, backTo = '/', backLabel = 'Tüm ilanlar
       </div>
 
       <div className="mobile-only">
-        <Share url={listingUrl(l)} title={l.title} yuzen />
+        <Share url={listingUrl(l)} title={l.title} ozet={ozet} yuzen />
       </div>
 
       <div className="mobile-cta">
