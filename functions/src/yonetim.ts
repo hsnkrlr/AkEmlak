@@ -64,7 +64,7 @@ function depo(): Depo {
 function hataCevir(e: unknown): HttpsError {
   if (e instanceof HttpsError) return e;
   if (e instanceof GithubHatasi) {
-    logger.error('GitHub hatası', { kod: e.kod, mesaj: e.message });
+    logger.error('GitHub hatası', { kod: e.kod, durum: e.durum, github: e.github, mesaj: e.message });
     return new HttpsError(e.kod === 'anahtar' ? 'failed-precondition' : e.kod === 'cakisma' ? 'aborted' : 'unavailable', e.message);
   }
   const mesaj = e instanceof Error ? e.message : String(e);

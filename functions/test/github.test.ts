@@ -6,7 +6,7 @@ import { yaziyaDok, type DataJson } from '../src/ilanlar.ts';
 type Istek = { method: string; path: string; body?: Record<string, unknown> };
 
 /** Git Data API'nin yazımda kullanılan uçlarını taklit eden sahte GitHub */
-function sahteGithub(o: { refCevaplari?: number[]; ilkCevap?: number; araYazim?: DataJson } = {}) {
+function sahteGithub(o: { refCevaplari?: number[]; ilkCevap?: number; araYazim?: DataJson; blobCevap?: number } = {}) {
   const istekler: Istek[] = [];
   let ref = 'c0';
   const dosyalar: Record<string, string> = { c0: yaziyaDok({ ilanlar: [{ ilanNo: 'AK-10006', baslik: 'Eski' }] }) };
@@ -24,7 +24,7 @@ function sahteGithub(o: { refCevaplari?: number[]; ilkCevap?: number; araYazim?:
     if (method === 'GET' && p.startsWith('/git/commits/')) return json(200, { sha: p.split('/').pop(), tree: { sha: `t-${p.split('/').pop()}` } });
     if (method === 'GET' && p.startsWith('/git/trees/')) return json(200, { truncated: false, tree: [{ path: 'public/data.json', type: 'blob' }, { path: 'public/img/var.webp', type: 'blob' }, { path: 'public/img/eski.webp', type: 'blob' }] });
     if (method === 'GET' && p === '/contents/public/data.json') return new Response(dosyalar[u.searchParams.get('ref')!], { status: 200 });
-    if (method === 'POST' && p === '/git/blobs') return json(201, { sha: `b${++sayac}` });
+    if (method === 'POST' && p === '/git/blobs') return o.blobCevap ? json(o.blobCevap, { message: 'Resource not accessible by personal access token' }) : json(201, { sha: `b${++sayac}` });
     if (method === 'POST' && p === '/git/trees') return json(201, { sha: `t${++sayac}` });
     if (method === 'POST' && p === '/git/commits') return json(201, { sha: `c${++sayac}` });
     if (method === 'PATCH' && p === '/git/refs/heads/yonetim-test') {
@@ -96,9 +96,22 @@ test('üç denemede de çakışma olursa cakisma hatası verir', async () => {
   );
 });
 
-test('geçersiz anahtar anahtar hatası verir', async () => {
+test('geçersiz ya da süresi dolmuş anahtar (401) açıkça söylenir', async () => {
   const g = sahteGithub({ ilkCevap: 401 });
-  await assert.rejects(depo(g.fetchFn).oku(), (e: unknown) => e instanceof GithubHatasi && e.kod === 'anahtar' && /GitHub anahtarının süresi dolmuş veya yetkisi yok/.test(e.message));
+  await assert.rejects(depo(g.fetchFn).oku(), (e: unknown) => e instanceof GithubHatasi && e.kod === 'anahtar' && /geçersiz ya da süresi dolmuş/.test(e.message) && e.durum === 401);
+});
+
+test('okuyabilen ama yazamayan anahtar (403 yazmada) yazma izni eksik diye söylenir', async () => {
+  const g = sahteGithub({ blobCevap: 403 });
+  await assert.rejects(
+    depo(g.fetchFn).yaz(async (veri) => ({ veri, ekle: [], sil: [] }), 'm'),
+    (e: unknown) => e instanceof GithubHatasi && e.kod === 'anahtar' && /yazma izni yok/.test(e.message) && /Read and write/.test(e.message) && e.durum === 403 && /Resource not accessible/.test(e.github),
+  );
+});
+
+test('depoya erişemeyen anahtar (404 okumada) depo seçimi diye söylenir', async () => {
+  const g = sahteGithub({ ilkCevap: 404 });
+  await assert.rejects(depo(g.fetchFn).oku(), (e: unknown) => e instanceof GithubHatasi && e.kod === 'anahtar' && /erişemiyor/.test(e.message));
 });
 
 test('commit mesajı, hazırlık sonrası belirlenen ilan numarasıyla yazılabilir', async () => {

@@ -203,7 +203,7 @@ await page.goto(`${ADMIN}#/ilan/yeni`);
 await page.fill('.y-alan:has-text("Başlık") input', 'Kaybolmaması gereken başlık');
 await page.click('text=Siteye ekle');
 await page.waitForSelector('.y-hata[role=alert]');
-assert.match(await page.locator('.y-hata[role=alert]').innerText(), /^GitHub anahtarının süresi dolmuş veya yetkisi yok\./);
+assert.match(await page.locator('.y-hata[role=alert]').innerText(), /^GitHub anahtarı geçersiz ya da süresi dolmuş\./);
 assert.equal(await page.locator('.y-alan:has-text("Başlık") input').inputValue(), 'Kaybolmaması gereken başlık');
 authFail = false;
 adim('GitHub anahtarı geçersiz → açık hata, form korundu');

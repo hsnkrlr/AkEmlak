@@ -19,9 +19,14 @@ export interface Depo {
 
 export class GithubHatasi extends Error {
   kod: 'anahtar' | 'cakisma' | 'diger';
-  constructor(kod: 'anahtar' | 'cakisma' | 'diger', mesaj: string) {
+  /** GitHub'ın HTTP durum kodu ve kendi mesajı (kayıtlara yazılır, kullanıcıya gösterilmez) */
+  durum: number;
+  github: string;
+  constructor(kod: 'anahtar' | 'cakisma' | 'diger', mesaj: string, durum = 0, github = '') {
     super(mesaj);
     this.kod = kod;
+    this.durum = durum;
+    this.github = github;
   }
 }
 
@@ -52,7 +57,15 @@ export function depoOlustur(o: {
       body: govde ? JSON.stringify(govde) : undefined,
     });
     if (res.status === 401 || res.status === 403 || res.status === 404) {
-      throw new GithubHatasi('anahtar', 'GitHub anahtarının süresi dolmuş veya yetkisi yok. Secret Manager\'daki GITHUB_TOKEN değerini yenileyin.');
+      const github = String(((await res.json().catch(() => ({}))) as { message?: unknown }).message ?? '').slice(0, 200);
+      const yazma = method !== 'GET';
+      const mesaj =
+        res.status === 401
+          ? 'GitHub anahtarı geçersiz ya da süresi dolmuş. GitHub\'da yeni anahtar oluşturup Secret Manager\'daki GITHUB_TOKEN\'a yeni sürüm olarak ekleyin.'
+          : yazma
+            ? 'GitHub anahtarının bu depoya yazma izni yok. Anahtarda "Contents: Read and write" izni olmalı.'
+            : 'GitHub anahtarı bu depoya erişemiyor. Anahtarda hsnkrlr/AkEmlak deposunun seçili olduğunu kontrol edin.';
+      throw new GithubHatasi('anahtar', mesaj, res.status, github);
     }
     return res;
   }

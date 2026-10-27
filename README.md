@@ -179,7 +179,7 @@ Telefona kurulabilen (ana ekrana eklenen) yönetim uygulaması. Başvuruları ok
 
 **GitHub anahtarı**
 
-Fonksiyonlar, Secret Manager'daki **`GITHUB_TOKEN`** ile yazar: yalnızca `hsnkrlr/AkEmlak` deposu, *Contents: Read and write*, 1 yıl geçerli (fine-grained token). Süresi dolunca uygulama “GitHub anahtarının süresi dolmuş” der: GitHub'da yeni token oluşturup Secret Manager'a yeni sürüm olarak ekleyin ve `npx firebase deploy --only functions` çalıştırın. Yazılan dal `GITHUB_BRANCH` parametresidir (varsayılan: Vercel'in yayın dalı).
+Fonksiyonlar, Secret Manager'daki **`GITHUB_TOKEN`** ile yazar: yalnızca `hsnkrlr/AkEmlak` deposu, *Contents: Read and write*, 1 yıl geçerli (fine-grained token). Süresi dolunca ya da izni eksikse uygulama bunu açıkça söyler (“geçersiz ya da süresi dolmuş”, “yazma izni yok”, “depoya erişemiyor”): GitHub'da yeni token oluşturup Secret Manager'a yeni sürüm olarak ekleyin ve `npx firebase deploy --only functions` çalıştırın. Yazılan dal `GITHUB_BRANCH` parametresidir (varsayılan: Vercel'in yayın dalı).
 
 **Giriş teknik notu:** Google girişi açılır pencereyle yapılır; giriş sayfası Firebase'in kendi adresindedir (`akemlak-ilan.firebaseapp.com`), ek ayar gerekmez. Pencere açılamazsa uygulama yönlendirmeyle dener.
 
