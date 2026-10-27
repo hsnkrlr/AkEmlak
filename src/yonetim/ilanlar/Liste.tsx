@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
 import { CATEGORY_LABEL, type Category } from '../../types';
+import { SITE } from '../../config';
+import { slugify } from '../../lib/format';
+import { Share } from '../../components/Share';
 import { durumOf as durumNorm, hataMetni, ilanIslem, ilanlariGetir, istekKimligi, turOf, type IlanIslem, type IlanKaydi } from './api';
 
 const fiyatOf = (i: IlanKaydi) => {
@@ -117,6 +120,11 @@ function Islemler({ ilan, bitti }: { ilan: IlanKaydi; bitti: (mesaj: string) => 
   return (
     <div style={{ padding: '0 12px 12px' }}>
       {hata && <p className="y-hata">{hata}</p>}
+      <Share
+        url={`${SITE.siteUrl}/detay/${ilan.baglanti || slugify(ilan.baslik)}`}
+        title={ilan.baslik}
+        ozet={[`${turOf(ilan.tur) === 'kiralik' ? 'Kiralık' : 'Satılık'} ${CATEGORY_LABEL[ilan.kategori as Category] ?? ''}`.trim(), String(ilan.ilce ?? ilan.il ?? ''), fiyatOf(ilan)].filter(Boolean).join(' · ')}
+      />
       <div className="y-menu">
         <a className="y-btn y-btn-ana" href={`#/ilan/${encodeURIComponent(no)}`}>
           Düzenle

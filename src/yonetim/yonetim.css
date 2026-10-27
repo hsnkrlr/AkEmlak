@@ -580,3 +580,34 @@ h3 {
     grid-template-columns: repeat(5, 1fr);
   }
 }
+
+/* Paylaşım düğmeleri (sitedekiyle aynı) */
+.share {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 10px;
+}
+.share .small {
+  font-size: 0.85rem;
+}
+.share .muted {
+  color: var(--y-soluk);
+}
+.share-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--y-cizgi);
+  background: #fff;
+  color: var(--y-ink);
+  cursor: pointer;
+  font: inherit;
+  text-decoration: none;
+}
+.share-btn.wa { color: #16a34a; }
+.share-btn.fb { color: #1877f2; }
+.share-btn.x { color: #111; }
