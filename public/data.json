@@ -1,31 +1,3 @@
 {
-  "ilanlar": [
-    {
-      "ilanNo": "AK-10007",
-      "baslik": "Bahçelievler TOKİ Konutlarında Zemin Kat Kiralık Daire",
-      "tur": "kiralik",
-      "kategori": "daire",
-      "fiyat": 0,
-      "il": "Gaziantep",
-      "ilce": "Nurdağı",
-      "mahalle": "Bahçelievler Mahallesi",
-      "brutM2": null,
-      "netM2": null,
-      "odaSayisi": "",
-      "banyoSayisi": null,
-      "kat": "Zemin Kat",
-      "binaYasi": null,
-      "isitma": "",
-      "ozellikler": [
-        "TOKİ Konutu",
-        "Zemin Kat"
-      ],
-      "aciklama": "Nurdağı Bahçelievler Mahallesi TOKİ konutlarında zemin kat kiralık daire.\n\nKira bedeli, oda sayısı ve diğer detaylar için WhatsApp'tan bize yazabilirsiniz.",
-      "fotograflar": [],
-      "durum": "yayinda",
-      "firsat": false,
-      "tarih": "2026-10-21",
-      "baglanti": "nurdagi-bahcelievler-toki-zemin-kat-kiralik-daire"
-    }
-  ]
+  "ilanlar": []
 }
