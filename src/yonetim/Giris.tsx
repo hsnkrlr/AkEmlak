@@ -18,14 +18,15 @@ export function Giris({ hata }: { hata?: string | null }) {
           setBekle(true);
           setYerelHata('');
           try {
-            await girisYap();
+            const hata = await girisYap();
+            if (hata) setYerelHata(hata);
           } catch {
             setYerelHata('Giriş başlatılamadı. Lütfen tekrar deneyin.');
-            setBekle(false);
           }
+          setBekle(false);
         }}
       >
-        <IkonGoogle /> {bekle ? 'Google’a yönlendiriliyor…' : 'Google ile giriş yap'}
+        <IkonGoogle /> {bekle ? 'Google penceresi açık…' : 'Google ile giriş yap'}
       </button>
       {(hata || yerelHata) && <p className="y-hata" role="alert">{hata || yerelHata}</p>}
     </div>

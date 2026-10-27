@@ -54,7 +54,8 @@ const ADMIN_CSP = [
   "object-src 'none'",
   "base-uri 'none'",
   "form-action 'self'",
-  "frame-src 'self' https://www.google.com https://recaptcha.google.com" + (process.env.VITE_FIREBASE_EMULATOR === '1' ? ' http://127.0.0.1:9099' : ''),
+  // Google girişi Firebase'in kendi alan adındaki gizli iframe ile tamamlanır
+  "frame-src 'self' https://akemlak-ilan.firebaseapp.com https://www.google.com https://recaptcha.google.com" + (process.env.VITE_FIREBASE_EMULATOR === '1' ? ' http://127.0.0.1:9099' : ''),
   "worker-src 'self'",
   "manifest-src 'self'",
 ].join('; ');

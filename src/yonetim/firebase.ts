@@ -1,26 +1,24 @@
 /**
  * Yönetim uygulamasının Firebase bağlantısı. Ziyaretçi formunun anonim oturumuyla karışmaması için
- * ayrı bir uygulama örneği ("yonetim") kullanılır. Giriş Google ile ve yönlendirmeyle yapılır:
- * ana ekrana eklenmiş iPhone uygulamasında açılır pencere güvenilir değildir. Oturum sayfası
- * Vercel üzerinden aynı alan adına (/__/auth/) aktarıldığı için üçüncü taraf çerez kısıtlamalarına takılmaz.
+ * ayrı bir uygulama örneği ("yonetim") kullanılır. Giriş Google'ın açılır penceresiyle yapılır (Firebase'in
+ * üçüncü taraf çerez kısıtlamalarına karşı önerdiği yol); pencere açılamazsa yönlendirmeye düşülür.
+ * Giriş sayfası Firebase'in kendi adresindedir (akemlak-ilan.firebaseapp.com).
  */
 import { initializeApp } from 'firebase/app';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
 import {
   browserPopupRedirectResolver, connectAuthEmulator, getRedirectResult, GoogleAuthProvider, indexedDBLocalPersistence,
-  initializeAuth, signInWithCredential, signInWithRedirect, signOut,
+  initializeAuth, signInWithCredential, signInWithPopup, signInWithRedirect, signOut,
 } from 'firebase/auth';
 import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
 import { connectFunctionsEmulator, getFunctions } from 'firebase/functions';
 import { connectStorageEmulator, getStorage } from 'firebase/storage';
 import { FIREBASE_CONFIG, RECAPTCHA_ENTERPRISE_SITE_KEY, USE_EMULATOR } from '../firebase/config';
-
-/** Canlı sitede giriş sayfası sitenin kendi alan adından açılır (vercel.json → /__/auth/) */
-const SITE_HOST = 'ak-emlak.vercel.app';
+import { girisHataMetni } from './hata';
 
 const config = USE_EMULATOR
   ? { apiKey: 'demo-key', authDomain: '127.0.0.1', projectId: 'demo-akemlak', storageBucket: 'demo-akemlak.appspot.com', appId: 'demo-app', messagingSenderId: '0' }
-  : { ...FIREBASE_CONFIG, authDomain: window.location.host === SITE_HOST ? SITE_HOST : FIREBASE_CONFIG.authDomain };
+  : FIREBASE_CONFIG;
 
 export const yonetimApp = initializeApp(config, 'yonetim');
 if (!USE_EMULATOR && RECAPTCHA_ENTERPRISE_SITE_KEY) {
@@ -41,13 +39,26 @@ if (USE_EMULATOR) {
   connectFunctionsEmulator(functions, '127.0.0.1', 5001);
 }
 
-export async function girisYap(): Promise<void> {
+/** Giriş başlatır; hata (kullanıcı pencereyi kapattıysa null) döner */
+export async function girisYap(): Promise<string | null> {
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
-  await signInWithRedirect(auth, provider);
+  try {
+    await signInWithPopup(auth, provider);
+    return null;
+  } catch (e) {
+    const code = (e as { code?: string }).code ?? '';
+    // Açılır pencere engellendiyse ya da bu ortamda desteklenmiyorsa yönlendirmeyle dene
+    if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
+      await signInWithRedirect(auth, provider);
+      return null;
+    }
+    console.warn('Google girişi tamamlanamadı:', code || e);
+    return girisHataMetni(code);
+  }
 }
 
-/** Yönlendirmeden dönüşte oluşan giriş hatasını (varsa) döner */
+/** Yönlendirmeyle girişten dönüşte oluşan hatayı (varsa) döner */
 export async function girisSonucu(): Promise<string | null> {
   try {
     await getRedirectResult(auth);
@@ -55,10 +66,7 @@ export async function girisSonucu(): Promise<string | null> {
   } catch (e) {
     const code = (e as { code?: string }).code ?? '';
     console.warn('Google girişi tamamlanamadı:', code || e);
-    if (code === 'auth/unauthorized-domain') return 'Bu adres Google girişi için yetkilendirilmemiş.';
-    if (code === 'auth/operation-not-allowed') return 'Google ile giriş henüz açılmamış (Firebase konsolu → Authentication).';
-    if (code === 'auth/network-request-failed') return 'Bağlantı kurulamadı. İnternetinizi kontrol edin.';
-    return 'Giriş yapılamadı. Lütfen tekrar deneyin.';
+    return girisHataMetni(code);
   }
 }
 

@@ -14,3 +14,13 @@ test('bağlantı sorunları anlaşılır mesaja çevrilir', () => {
   assert.equal(hataMetni({ code: 'functions/deadline-exceeded', message: 'deadline-exceeded' }), ag);
   assert.equal(hataMetni(undefined), ag);
 });
+
+import { girisHataMetni } from './hata.ts';
+
+test('giriş hataları anlaşılır mesaja çevrilir; kullanıcının kapattığı pencere hata sayılmaz', () => {
+  assert.equal(girisHataMetni('auth/popup-closed-by-user'), null);
+  assert.equal(girisHataMetni('auth/cancelled-popup-request'), null);
+  assert.equal(girisHataMetni('auth/unauthorized-domain'), 'Bu adres Google girişi için yetkilendirilmemiş.');
+  assert.equal(girisHataMetni('auth/network-request-failed'), 'Bağlantı kurulamadı. İnternetinizi kontrol edin.');
+  assert.equal(girisHataMetni('auth/bilinmeyen'), 'Giriş yapılamadı. Lütfen tekrar deneyin.');
+});
