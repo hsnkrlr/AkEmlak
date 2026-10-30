@@ -1,6 +1,21 @@
 {
   "ilanlar": [
     {
+      "ilanNo": "AK-10004",
+      "baslik": "Yukarı Olucak Elmacık Yaylası",
+      "il": "Gaziantepe",
+      "ilce": "Nurdağı",
+      "mahalle": "Olucak",
+      "kategori": "arsa",
+      "tur": "satilik",
+      "paraBirimi": "TRY",
+      "durum": "yayinda",
+      "fiyat": 2000000,
+      "brutM2": 2000,
+      "fotograflar": [],
+      "tarih": "2026-10-30"
+    },
+    {
       "ilanNo": "AK-10003",
       "baslik": "Beyoğlu Kalenin Batısı",
       "il": "Kahramanmaraş",
