@@ -1,6 +1,27 @@
 {
   "ilanlar": [
     {
+      "ilanNo": "AK-10011",
+      "baslik": "Bademli Tokiler",
+      "ilce": "Nurdağı",
+      "mahalle": "Bademli",
+      "odaSayisi": "2+1",
+      "aciklama": "Tapusu Hazır",
+      "kategori": "daire",
+      "tur": "satilik",
+      "paraBirimi": "TRY",
+      "durum": "yayinda",
+      "fiyat": 2250000,
+      "ozellikler": [
+        "Cam Balkon",
+        "Klima",
+        "Kombi",
+        "Yeni Dolap Yapılı"
+      ],
+      "fotograflar": [],
+      "tarih": "2026-10-30"
+    },
+    {
       "ilanNo": "AK-10010",
       "baslik": "Aşağı Olucak Mezarlık Karşısı",
       "ilce": "Nurdağı",
