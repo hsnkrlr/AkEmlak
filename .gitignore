@@ -9,3 +9,4 @@ dist
 .firebase/
 functions/lib
 dist-e2e-shots
+shots/
