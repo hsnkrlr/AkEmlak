@@ -19,6 +19,7 @@ import {
   sonrakiIlanNo, yaziyaDok, type DataJson, type IlanIslem, type IlanJson,
 } from './ilanlar';
 import { fotografIsle } from './resim';
+import { sqlUret } from './sql';
 import { yetkiliMi } from './yetki';
 
 const GITHUB_TOKEN = defineSecret('GITHUB_TOKEN');
@@ -79,6 +80,7 @@ const bugun = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Istanbu
 const baglanti = (i: IlanJson) => `${SITE}/detay/${ilanAdresi(i)}`;
 const ISTEK_ID = /^[A-Za-z0-9]{16,40}$/;
 const imgYolu = (ad: string) => `public/img/${ad}`;
+const sqlDosyasi = (v: DataJson) => ({ yol: 'veri/ilanlar.sql', icerik: Buffer.from(sqlUret(v.ilanlar), 'utf8') });
 
 async function islemKaydet(kim: string, ne: string, ilanNo: string, commit: string, ek: { istekId?: string; baglanti?: string } = {}) {
   await getFirestore().collection('islemler').add({ kim, ne, ilanNo, commit, ...ek, tarih: FieldValue.serverTimestamp() });
@@ -193,7 +195,8 @@ export const ilanKaydet = onCall(SECENEK, async (req) => {
       const yeni = duzenlenen ? guncelle(veri, ilanNo, d.ilan, adlar) : ekle(veri, d.ilan, ilanNo, bugun(), adlar);
       sonIlan = ilanBul(yeni, ilanNo)!;
       const sil = kullanilmayanFotograflar(veri, yeni).filter((f) => FOTO_ADI.test(f)).map(imgYolu);
-      return { veri: yeni, ekle: ekleList, sil };
+      // SQL kopyası aynı commit'te güncellenir (veri/ilanlar.sql, sitede yayınlanmaz)
+      return { veri: yeni, ekle: [...ekleList, sqlDosyasi(yeni)], sil };
     }, () => `Yönetim: ${ilanNo} ${duzenlenen ? 'güncellendi' : 'eklendi'} (${email})`);
 
     if (basvuruId) {
@@ -227,7 +230,7 @@ export const ilanIslem = onCall(SECENEK, async (req) => {
     const sonuc = await depo().yaz(async (veri) => {
       const yeni = islemUygula(veri, ilanNo, islem);
       const sil = islem === 'sil' ? kullanilmayanFotograflar(veri, yeni).filter((f) => FOTO_ADI.test(f)).map(imgYolu) : [];
-      return { veri: yeni, ekle: [], sil };
+      return { veri: yeni, ekle: [sqlDosyasi(yeni)], sil };
     }, `Yönetim: ${ilanNo} ${ISLEM_METNI[islem]} (${email})`);
     await islemKaydet(email, islem === 'sil' ? 'sil' : 'durum', ilanNo, sonuc.commit, istekId ? { istekId } : {});
     return { commit: sonuc.commit };

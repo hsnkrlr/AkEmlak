@@ -3,6 +3,7 @@ import { CATEGORY_LABEL, type Category } from '../../types';
 import { SITE } from '../../config';
 import { slugify } from '../../lib/format';
 import { Share } from '../../components/Share';
+import { sqlUret } from '../../../functions/src/sql';
 import { durumOf as durumNorm, hataMetni, ilanIslem, ilanlariGetir, istekKimligi, turOf, type IlanIslem, type IlanKaydi } from './api';
 
 const fiyatOf = (i: IlanKaydi) => {
@@ -26,7 +27,24 @@ export default function IlanListesi() {
 
   return (
     <section>
-      <h1 className="y-baslik">İlanlar</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+        <h1 className="y-baslik">İlanlar</h1>
+        {ilanlar && ilanlar.length > 0 && (
+          <button
+            type="button"
+            className="y-btn y-btn-kucuk"
+            onClick={() => {
+              const a = document.createElement('a');
+              a.href = URL.createObjectURL(new Blob([sqlUret(ilanlar)], { type: 'application/sql' }));
+              a.download = `ak-emlak-ilanlar-${new Date().toISOString().slice(0, 10)}.sql`;
+              a.click();
+              setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+            }}
+          >
+            SQL olarak indir
+          </button>
+        )}
+      </div>
       {mesaj && <p className="y-basari">{mesaj}</p>}
       {hata && (
         <div className="y-hata">
