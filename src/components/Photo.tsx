@@ -1,4 +1,4 @@
-import { imageUrl } from '../lib/format';
+import { imageUrl, imageVariantUrl } from '../lib/format';
 import { CATEGORY_GROUP, CATEGORY_LABEL, type Category } from '../types';
 
 interface Props {
@@ -7,15 +7,19 @@ interface Props {
   category?: Category;
   className?: string;
   eager?: boolean;
+  /** Görselin sayfada kaplayacağı genişlik; tarayıcı buna göre küçük/orta/tam kopyayı seçer */
+  sizes?: string;
 }
 
 /** İlan fotoğrafı; fotoğraf yoksa zarif bir yer tutucu gösterir. */
-export function Photo({ name, alt, category, className = '', eager = false }: Props) {
+export function Photo({ name, alt, category, className = '', eager = false, sizes = '(max-width: 640px) 100vw, 400px' }: Props) {
   if (!name) return <Placeholder category={category} className={className} />;
   return (
     <img
       className={`photo ${className}`}
-      src={imageUrl(name)}
+      src={import.meta.env.PROD ? imageVariantUrl(name, 'o') : imageUrl(name)}
+      srcSet={import.meta.env.PROD ? `${imageVariantUrl(name, 'k')} 480w, ${imageVariantUrl(name, 'o')} 1200w, ${imageUrl(name)} 1600w` : undefined}
+      sizes={import.meta.env.PROD ? sizes : undefined}
       alt={alt}
       loading={eager ? 'eager' : 'lazy'}
       decoding="async"

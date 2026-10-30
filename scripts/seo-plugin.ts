@@ -162,7 +162,8 @@ function listingBody(l: Listing): string {
     .map((p) => `<p>${esc(p)}</p>`)
     .join('');
   const features = l.features.length ? `<h2>Özellikler</h2><ul>${l.features.map((f) => `<li>${esc(f)}</li>`).join('')}</ul>` : '';
-  const img = l.images[0] ? `<img src="${esc(imagePath(l.images[0]))}" alt="${esc(l.title)}" width="800" />` : '';
+  // Hazır sayfadaki görsel: hafif 1200 px kopya (scripts/gorsel-plugin.ts)
+  const img = l.images[0] ? `<img src="/img/o/${encodeURIComponent(l.images[0].replace(/\.[a-z0-9]+$/i, '') + '.webp')}" alt="${esc(l.title)}" width="800" />` : '';
   return (
     `<main class="container section prerender"><p><a href="/">${esc(SITE.name)} – tüm ilanlar</a></p>` +
     `<article><h1>${esc(l.title)}</h1>${img}<ul>${rows}</ul>${paras}${features}` +

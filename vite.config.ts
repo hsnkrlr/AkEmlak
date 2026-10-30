@@ -1,6 +1,7 @@
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { seoPrerender } from './scripts/seo-plugin';
+import { gorselPlugin } from './scripts/gorsel-plugin';
 
 // Firebase (başvuru formu): Firestore, Storage, anonim oturum, App Check (reCAPTCHA Enterprise)
 const FIREBASE_CONNECT = [
@@ -72,7 +73,7 @@ const cspPlugin = (): Plugin => ({
 });
 
 export default defineConfig({
-  plugins: [react(), cspPlugin(), seoPrerender()],
+  plugins: [react(), cspPlugin(), seoPrerender(), gorselPlugin()],
   build: {
     sourcemap: false,
     target: 'es2021',

@@ -63,6 +63,11 @@ export function imageUrl(name: string): string {
   return `${import.meta.env.BASE_URL}img/${encodeURIComponent(name)}`;
 }
 
+/** Derlemede üretilen hafif kopyalar (scripts/gorsel-plugin.ts): k = 480 px, o = 1200 px, ikisi de webp */
+export function imageVariantUrl(name: string, boyut: 'k' | 'o'): string {
+  return `${import.meta.env.BASE_URL}img/${boyut}/${encodeURIComponent(name.replace(/\.[a-z0-9]+$/i, '') + '.webp')}`;
+}
+
 /** "Diğer" kategorisinde yöneticinin yazdığı adı gösterir. */
 export function categoryLabel(l: Pick<Listing, 'category' | 'categoryOther'>): string {
   return l.category === 'diger' && l.categoryOther ? l.categoryOther : CATEGORY_LABEL[l.category];

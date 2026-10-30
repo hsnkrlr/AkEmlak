@@ -1780,3 +1780,30 @@ textarea {
     gap: 0 40px;
   }
 }
+
+/* Detay sayfası genişlik sabitliği: içerik (galeri, küçük resim şeridi, uzun kelimeler) sayfayı genişletmesin */
+html,
+body {
+  overflow-x: clip;
+}
+.detail-grid > *,
+.detail-main > *,
+.detail-side {
+  min-width: 0;
+}
+.detail .gallery,
+.detail .gallery-main {
+  max-width: 100%;
+}
+.detail img {
+  max-width: 100%;
+}
+.detail-title,
+.description p {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 960px) {
+  .detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -53,7 +53,7 @@ export function Gallery({ listing }: { listing: Listing }) {
     <div className="gallery">
       <div className="gallery-main" {...swipe}>
         <button type="button" className="gallery-open" onClick={() => setOpen(true)} aria-label="Fotoğrafı büyüt">
-          <Photo name={images[index]} alt={`${listing.title} – fotoğraf ${index + 1}`} eager />
+          <Photo name={images[index]} alt={`${listing.title} – fotoğraf ${index + 1}`} eager sizes="(max-width: 960px) 100vw, 800px" />
         </button>
         {count > 1 && (
           <>
@@ -81,7 +81,7 @@ export function Gallery({ listing }: { listing: Listing }) {
               onClick={() => setIndex(i)}
               aria-label={`Fotoğraf ${i + 1}`}
             >
-              <Photo name={name} alt="" />
+              <Photo name={name} alt="" sizes="92px" />
             </button>
           ))}
         </div>
@@ -90,7 +90,7 @@ export function Gallery({ listing }: { listing: Listing }) {
       {open && (
         <div className="lightbox" role="dialog" aria-modal="true" aria-label="Fotoğraf görüntüleyici" onClick={() => setOpen(false)}>
           <div className="lightbox-inner" onClick={(e) => e.stopPropagation()} {...swipe}>
-            <Photo name={images[index]} alt={`${listing.title} – fotoğraf ${index + 1}`} eager />
+            <Photo name={images[index]} alt={`${listing.title} – fotoğraf ${index + 1}`} eager sizes="100vw" />
           </div>
           <button type="button" className="lightbox-close" onClick={() => setOpen(false)} aria-label="Kapat">
             <IconClose width={26} height={26} />
