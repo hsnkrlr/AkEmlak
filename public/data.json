@@ -1,6 +1,21 @@
 {
   "ilanlar": [
     {
+      "ilanNo": "AK-10009",
+      "baslik": "Yukarı Olucak mahallesi",
+      "ilce": "Nurdağı",
+      "mahalle": "Olucak",
+      "aciklama": "Tek tapu",
+      "kategori": "arsa",
+      "tur": "satilik",
+      "paraBirimi": "TRY",
+      "durum": "yayinda",
+      "fiyat": 0,
+      "brutM2": 1460,
+      "fotograflar": [],
+      "tarih": "2026-10-30"
+    },
+    {
       "ilanNo": "AK-10008",
       "baslik": "Esenyurt mahallesi 450m² arsa",
       "ilce": "Nurdağı",
