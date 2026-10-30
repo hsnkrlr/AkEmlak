@@ -1,6 +1,21 @@
 {
   "ilanlar": [
     {
+      "ilanNo": "AK-10007",
+      "baslik": "Bahçelievler mahallesinde 499m² arsa",
+      "ilce": "Nurdağı",
+      "mahalle": "Bahçelievler",
+      "aciklama": "Çarşıya yakın, tek tapu",
+      "kategori": "arsa",
+      "tur": "satilik",
+      "paraBirimi": "TRY",
+      "durum": "yayinda",
+      "fiyat": 400000,
+      "brutM2": 499,
+      "fotograflar": [],
+      "tarih": "2026-10-30"
+    },
+    {
       "ilanNo": "AK-10006",
       "baslik": "İslahiye Eski Yol Altı Çiftlik",
       "kategoriAdi": "Çiftlik",
