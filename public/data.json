@@ -1,6 +1,24 @@
 {
   "ilanlar": [
     {
+      "ilanNo": "AK-10005",
+      "baslik": "Esenyurt Müstakil Ev",
+      "ilce": "Nurdağı",
+      "mahalle": "Esenyurt",
+      "odaSayisi": "3+1",
+      "kat": "1",
+      "isitma": "Doğalgaz",
+      "aciklama": "İki katlı müstakil evin alt katı",
+      "kategori": "mustakil",
+      "tur": "kiralik",
+      "paraBirimi": "TRY",
+      "durum": "yayinda",
+      "fiyat": 12000,
+      "banyoSayisi": 1,
+      "fotograflar": [],
+      "tarih": "2026-10-30"
+    },
+    {
       "ilanNo": "AK-10004",
       "baslik": "Yukarı Olucak Elmacık Yaylası",
       "il": "Gaziantepe",
