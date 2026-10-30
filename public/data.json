@@ -2,17 +2,20 @@
   "ilanlar": [
     {
       "ilanNo": "AK-10012",
+      "fotograflar": [],
+      "tarih": "2026-10-30",
       "baslik": "Sanayide kiralık iş yeri",
       "ilce": "Nurdağı",
       "mahalle": "Aslanlı",
-      "aciklama": "D Blok - Taktörcünün Karşısı",
-      "kategori": "isyeri",
+      "aciklama": "D Blok - Traktörcünün Karşısı",
+      "kategori": "imalathane",
       "tur": "kiralik",
       "paraBirimi": "TRY",
       "durum": "yayinda",
       "fiyat": 12000,
-      "fotograflar": [],
-      "tarih": "2026-10-30"
+      "ozellikler": [
+        "D Blok"
+      ]
     },
     {
       "ilanNo": "AK-10011",
