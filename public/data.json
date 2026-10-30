@@ -1,6 +1,20 @@
 {
   "ilanlar": [
     {
+      "ilanNo": "AK-10006",
+      "baslik": "İslahiye Eski Yol Altı Çiftlik",
+      "kategoriAdi": "Çiftlik",
+      "ilce": "İslahiye",
+      "aciklama": "Yol Altı satılık çiftlik, 2600m²",
+      "kategori": "diger",
+      "tur": "satilik",
+      "paraBirimi": "TRY",
+      "durum": "yayinda",
+      "fiyat": 12500000,
+      "fotograflar": [],
+      "tarih": "2026-10-30"
+    },
+    {
       "ilanNo": "AK-10005",
       "baslik": "Esenyurt Müstakil Ev",
       "ilce": "Nurdağı",
