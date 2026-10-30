@@ -10,6 +10,17 @@ import Fotograflar, { fotoGirdisi, type FotoSecim } from './Fotograflar';
 
 export type DuzenleyiciModu = { mod: 'yeni' } | { mod: 'duzenle'; ilanNo: string } | { mod: 'basvuru'; basvuruId: string };
 
+const IMAR = ['Konut İmarlı', 'Ticari İmarlı', 'Sanayi İmarlı', 'Tarla (İmarsız)', 'Köy İçi', 'Belirtilmemiş'];
+const TAPU = ['Müstakil Tapu', 'Hisseli Tapu', 'Kat Mülkiyeti', 'Kat İrtifakı', 'Zilliyet'];
+/** Kategori grubuna göre hızlı eklenen özellikler */
+const ONERILER: Record<string, string[]> = {
+  konut: ['Bahçeli', 'Otopark', 'Asansör', 'Balkon', 'Doğalgaz', 'Eşyalı', 'Site İçinde', 'Güvenlik', 'Ankastre Mutfak', 'Camiye Yakın', 'Okula Yakın', 'Krediye Uygun', 'Takasa Uygun'],
+  arsa: ['Yola Cepheli', 'Köşe Parsel', 'Elektrik Var', 'Su Var', 'Kuyu', 'Sulama İmkânı', 'Manzaralı', 'Düz Arazi', 'Meyve Ağaçlı', 'Fıstık Ağaçlı', 'Zeytin Ağaçlı', 'Asfalta Yakın', 'Takasa Uygun'],
+  isyeri: ['Cadde Üzeri', 'Vitrinli', 'Depolu', 'Asma Katlı', 'Tır Girişli', 'Trifaze Elektrik', 'Otoparklı', 'Kiracılı', 'Devren'],
+  vasita: ['Hasar Kayıtsız', 'Boyasız', 'Değişensiz', 'Servis Bakımlı', 'İlk Sahibinden', 'Takasa Uygun', 'Krediye Uygun'],
+  diger: ['Takasa Uygun', 'Pazarlık Payı Var', 'Acil Satılık'],
+};
+
 /** Formda her alan metin olarak tutulur; kaydederken türüne çevrilir */
 type Form = Record<string, string> & { ozellikler: string; firsat: string };
 
@@ -212,13 +223,41 @@ export default function Duzenleyici(p: DuzenleyiciModu) {
               {grup !== 'arsa' && <Alan ad="Kat" deger={form.kat ?? ''} degis={(v) => set('kat', v)} max={30} />}
               {grup !== 'arsa' && <Alan ad="Bina yaşı" deger={form.binaYasi ?? ''} degis={(v) => set('binaYasi', v)} sayi />}
               {grup !== 'arsa' && <Alan ad="Isıtma" deger={form.isitma ?? ''} degis={(v) => set('isitma', v)} max={40} />}
+              {grup === 'arsa' && <Alan ad="Ada / Parsel" deger={form.adaParsel ?? ''} degis={(v) => set('adaParsel', v)} ipucu="125 / 4" max={40} />}
             </div>
           )}
         </Bolum>
       )}
 
+      {grup === 'arsa' && (
+        <Bolum baslik="İmar ve tapu">
+          <Secim ad="İmar durumu" secenekler={IMAR.map((x) => [x, x])} deger={form.imarDurumu ?? ''} degis={(v) => set('imarDurumu', form.imarDurumu === v ? '' : v)} />
+          <Secim ad="Tapu durumu" secenekler={TAPU.map((x) => [x, x])} deger={form.tapuDurumu ?? ''} degis={(v) => set('tapuDurumu', form.tapuDurumu === v ? '' : v)} />
+        </Bolum>
+      )}
+
       <Bolum baslik="Açıklama">
-        <Alan ad="Öne çıkan özellikler" deger={form.ozellikler} degis={(v) => set('ozellikler', v)} ipucu="Virgülle ayırın: Bahçe, Otopark" />
+        <Alan ad="Öne çıkan özellikler" deger={form.ozellikler} degis={(v) => set('ozellikler', v)} ipucu="Virgülle ayırın ya da aşağıdan seçin" />
+        <div className="y-secenekler" style={{ marginTop: -4, marginBottom: 12 }} aria-label="Önerilen özellikler">
+          {ONERILER[grup].map((o) => {
+            const secili = form.ozellikler.split(',').map((x) => x.trim()).includes(o);
+            return (
+              <button
+                key={o}
+                type="button"
+                className={`y-cip ${secili ? 'on' : ''}`}
+                aria-pressed={secili}
+                onClick={() => {
+                  const liste = form.ozellikler.split(',').map((x) => x.trim()).filter(Boolean);
+                  set('ozellikler', (secili ? liste.filter((x) => x !== o) : [...liste, o]).join(', '));
+                }}
+              >
+                {secili ? '✓ ' : '+ '}
+                {o}
+              </button>
+            );
+          })}
+        </div>
         <label className="y-alan">
           <span>Açıklama</span>
           <textarea value={form.aciklama ?? ''} onChange={(e) => set('aciklama', e.target.value)} maxLength={5000} rows={5} />

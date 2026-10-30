@@ -85,9 +85,21 @@ export function summaryFacts(l: Listing): string[] {
     case 'isyeri':
       return [area ? `${fmtInt(area)} m²` : '', l.floor].filter(Boolean);
     case 'arsa':
-      return [l.grossM2 ? `${fmtInt(l.grossM2)} m²` : ''].filter(Boolean);
+      return [l.grossM2 ? `${fmtInt(l.grossM2)} m²` : '', l.zoning, l.deed].filter(Boolean).slice(0, 3);
     default:
       return [area ? `${fmtInt(area)} m²` : ''].filter(Boolean);
   }
 }
 
+
+/** "bugün", "3 gün önce", "2 hafta önce" ya da tarih */
+export function relativeDate(iso: string, now = Date.now()): string {
+  const t = Date.parse(iso);
+  if (!t) return '';
+  const gun = Math.floor((now - t) / 86400000);
+  if (gun <= 0) return 'Bugün';
+  if (gun === 1) return 'Dün';
+  if (gun < 7) return `${gun} gün önce`;
+  if (gun < 30) return `${Math.floor(gun / 7)} hafta önce`;
+  return formatDate(iso);
+}

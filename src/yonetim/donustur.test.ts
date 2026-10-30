@@ -40,3 +40,10 @@ test('basvurudanIlan bilinmeyen tipi diger yapar, fiyatsız başvuruda fiyat 0 o
   assert.equal(i.kategori, 'diger');
   assert.equal(i.fiyat, 0);
 });
+
+test('basvurudanIlan arsa başvurusunun imar, tapu ve ada/parsel bilgisini aktarır', () => {
+  const i = basvurudanIlan({ listing: { type: 'arsa', grossM2: 500, zoning: 'Konut', deed: 'Müstakil Tapu', parcel: '125 / 4' } });
+  assert.equal(i.imarDurumu, 'Konut');
+  assert.equal(i.tapuDurumu, 'Müstakil Tapu');
+  assert.equal(i.adaParsel, '125 / 4');
+});

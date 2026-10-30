@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { categoryLabel, formatLocation, formatPrice, soldLabel, summaryFacts } from '../lib/format';
+import { categoryLabel, formatLocation, formatPrice, relativeDate, soldLabel, summaryFacts } from '../lib/format';
 import { DEAL_LABEL, type Listing } from '../types';
 import { IconCamera, IconPin } from './Icons';
 import { Photo } from './Photo';
@@ -27,12 +27,17 @@ export function ListingCard({ listing: l, to }: { listing: Listing; to?: string 
         <p className="card-loc">
           <IconPin width={16} height={16} /> {formatLocation(l)}
         </p>
+        {l.description && <p className="card-desc">{l.description.replace(/\s+/g, ' ')}</p>}
         <ul className="card-facts">
           <li className="card-cat">{categoryLabel(l)}</li>
           {summaryFacts(l).map((f) => (
             <li key={f}>{f}</li>
           ))}
         </ul>
+        <div className="card-meta">
+          {l.code && <span>{l.code}</span>}
+          {l.createdAt && <span>{relativeDate(l.createdAt)}</span>}
+        </div>
       </div>
     </Link>
   );

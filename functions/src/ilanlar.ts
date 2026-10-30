@@ -18,7 +18,8 @@ export type DataJson = { ilanlar: IlanJson[]; [k: string]: unknown };
 export type IlanIslem = 'yayinda' | 'satildi' | 'gizli' | 'firsat' | 'firsatKaldir' | 'sil';
 
 const KATEGORILER = [
-  'daire', 'rezidans', 'villa', 'mustakil', 'yazlik', 'arsa', 'tarla', 'isyeri', 'ofis', 'depo',
+  'daire', 'rezidans', 'villa', 'mustakil', 'dubleks', 'yazlik', 'ciftlik_evi', 'prefabrik',
+  'arsa', 'tarla', 'bag_bahce', 'fistiklik', 'zeytinlik', 'ciftlik', 'isyeri', 'ofis', 'depo', 'imalathane', 'ahir',
   'otomobil', 'arazi_suv', 'motosiklet', 'ticari', 'is_makinesi', 'diger',
 ];
 
@@ -26,6 +27,7 @@ const KATEGORILER = [
 const METIN: Record<string, number> = {
   baslik: 140, kategoriAdi: 40, il: 60, ilce: 60, mahalle: 80, odaSayisi: 20, kat: 30, isitma: 40,
   marka: 40, model: 80, yakit: 30, vites: 30, renk: 30, aciklama: 6000,
+  imarDurumu: 40, tapuDurumu: 40, adaParsel: 40,
 };
 const SAYI: Record<string, number> = {
   fiyat: 1e12, brutM2: 1e7, netM2: 1e7, banyoSayisi: 50, binaYasi: 300, modelYili: 2100, km: 1e7,

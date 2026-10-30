@@ -21,6 +21,9 @@ export interface IlanTaslak {
   kat?: string;
   binaYasi?: number;
   isitma?: string;
+  imarDurumu?: string;
+  tapuDurumu?: string;
+  adaParsel?: string;
   marka?: string;
   model?: string;
   modelYili?: number;
@@ -43,7 +46,7 @@ const TIP_ADI: Record<string, string> = {
 };
 const METIN_ESLEME: [string, keyof IlanTaslak][] = [
   ['city', 'il'], ['district', 'ilce'], ['neighborhood', 'mahalle'], ['rooms', 'odaSayisi'], ['floor', 'kat'], ['heating', 'isitma'],
-  ['brand', 'marka'], ['model', 'model'], ['fuel', 'yakit'], ['gear', 'vites'], ['description', 'aciklama'],
+  ['zoning', 'imarDurumu'], ['deed', 'tapuDurumu'], ['parcel', 'adaParsel'], ['brand', 'marka'], ['model', 'model'], ['fuel', 'yakit'], ['gear', 'vites'], ['description', 'aciklama'],
 ];
 const SAYI_ESLEME: [string, keyof IlanTaslak][] = [
   ['grossM2', 'brutM2'], ['netM2', 'netM2'], ['bathrooms', 'banyoSayisi'], ['buildingAge', 'binaYasi'], ['modelYear', 'modelYili'], ['km', 'km'],

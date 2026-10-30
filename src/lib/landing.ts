@@ -19,8 +19,8 @@ export interface Landing {
   match: (l: Listing) => boolean;
 }
 
-const KONUT: Category[] = ['daire', 'rezidans', 'villa', 'mustakil', 'yazlik'];
-const ISYERI: Category[] = ['isyeri', 'ofis', 'depo'];
+const KONUT: Category[] = ['daire', 'rezidans', 'villa', 'mustakil', 'dubleks', 'yazlik', 'ciftlik_evi', 'prefabrik'];
+const ISYERI: Category[] = ['isyeri', 'ofis', 'depo', 'imalathane', 'ahir'];
 const VASITA: Category[] = ['otomobil', 'arazi_suv', 'motosiklet', 'ticari', 'is_makinesi'];
 
 interface Sablon {
@@ -38,10 +38,10 @@ const SABLONLAR: Sablon[] = [
   { key: 'satilik-ev', ad: 'Satılık Ev', deal: 'satilik', cats: KONUT, not: 'satılık ev, daire ve müstakil ev ilanları' },
   { key: 'kiralik-daire', ad: 'Kiralık Daire', deal: 'kiralik', cats: ['daire', 'rezidans'], not: 'kiralık daire ve TOKİ konutu ilanları' },
   { key: 'satilik-daire', ad: 'Satılık Daire', deal: 'satilik', cats: ['daire', 'rezidans'], not: 'satılık daire ve TOKİ konutu ilanları' },
-  { key: 'kiralik-mustakil-ev', ad: 'Kiralık Müstakil Ev', deal: 'kiralik', cats: ['mustakil', 'villa'], not: 'bahçeli, kiralık müstakil ev ilanları' },
-  { key: 'satilik-mustakil-ev', ad: 'Satılık Müstakil Ev', deal: 'satilik', cats: ['mustakil', 'villa'], not: 'bahçeli, satılık müstakil ev ilanları' },
+  { key: 'kiralik-mustakil-ev', ad: 'Kiralık Müstakil Ev', deal: 'kiralik', cats: ['mustakil', 'villa', 'dubleks', 'ciftlik_evi'], not: 'bahçeli, kiralık müstakil ev ilanları' },
+  { key: 'satilik-mustakil-ev', ad: 'Satılık Müstakil Ev', deal: 'satilik', cats: ['mustakil', 'villa', 'dubleks', 'ciftlik_evi'], not: 'bahçeli, satılık müstakil ev ilanları' },
   { key: 'satilik-arsa', ad: 'Satılık Arsa', deal: 'satilik', cats: ['arsa'], not: 'imarlı ve yola cepheli satılık arsa ilanları' },
-  { key: 'satilik-tarla-bahce', ad: 'Satılık Tarla ve Bahçe', deal: 'satilik', cats: ['tarla'], not: 'fıstık bahçesi, zeytinlik, bağ ve tarla ilanları' },
+  { key: 'satilik-tarla-bahce', ad: 'Satılık Tarla ve Bahçe', deal: 'satilik', cats: ['tarla', 'bag_bahce', 'fistiklik', 'zeytinlik', 'ciftlik'], not: 'fıstık bahçesi, zeytinlik, bağ ve tarla ilanları' },
   { key: 'kiralik-dukkan', ad: 'Kiralık Dükkan ve İş Yeri', deal: 'kiralik', cats: ISYERI, not: 'cadde üzeri kiralık dükkan, ofis ve depo ilanları' },
   { key: 'satilik-dukkan', ad: 'Satılık Dükkan ve İş Yeri', deal: 'satilik', cats: ISYERI, not: 'satılık dükkan, ofis ve depo ilanları' },
   { key: 'satilik-arac', ad: 'Satılık Araç', deal: 'satilik', cats: VASITA, not: 'ikinci el otomobil, arazi aracı ve ticari araç ilanları' },

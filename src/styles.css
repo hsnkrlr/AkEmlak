@@ -1733,3 +1733,50 @@ textarea {
     position: static;
   }
 }
+
+/* İlan kartı: kısa açıklama ve alt bilgi */
+.card-desc {
+  margin: 0 0 2px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* Detay sayfası: okunaklı açıklama, sade bilgi tablosu */
+.panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.panel-head h2 {
+  margin: 0;
+}
+.panel-meta {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.detail .description p {
+  font-size: 1.06rem;
+  line-height: 1.8;
+  margin: 0 0 12px;
+}
+@media (min-width: 961px) {
+  .detail .facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 40px;
+  }
+}

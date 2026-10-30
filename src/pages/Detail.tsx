@@ -106,10 +106,26 @@ export function DetailView({ listing: l, backTo = '/', backLabel = 'Tüm ilanlar
         <div className="detail-main">
           <Gallery listing={l} />
 
+          {l.description && (
+            <section className="panel">
+              <h2>Açıklama</h2>
+              <div className="description">
+                {l.description.split(/\n{2,}/).map((p, i) => (
+                  <p key={i}>{p}</p>
+                ))}
+              </div>
+            </section>
+          )}
+
           <section className="panel">
-            <h2>İlan Bilgileri</h2>
+            <div className="panel-head">
+              <h2>İlan Bilgileri</h2>
+              <span className="panel-meta">
+                {l.code && <>İlan No: <b>{l.code}</b></>}
+                {l.createdAt && <> · {formatDate(l.createdAt)}</>}
+              </span>
+            </div>
             <dl className="facts">
-              <Fact label="İlan No" value={l.code} />
               <Fact label="İlan Türü" value={DEAL_LABEL[l.dealType]} />
               <Fact label="Kategori" value={categoryLabel(l)} />
               {group === 'vasita' ? (
@@ -131,22 +147,13 @@ export function DetailView({ listing: l, backTo = '/', backLabel = 'Tüm ilanlar
                   <Fact label="Bulunduğu Kat" value={l.floor} />
                   <Fact label="Bina Yaşı" value={l.buildingAge === null ? null : l.buildingAge === 0 ? 'Sıfır bina' : `${l.buildingAge} yıl`} />
                   <Fact label="Isıtma" value={l.heating} />
+                  <Fact label="İmar Durumu" value={l.zoning} />
+                  <Fact label="Tapu Durumu" value={l.deed} />
+                  <Fact label="Ada / Parsel" value={l.parcel} />
                 </>
               )}
-              <Fact label="İlan Tarihi" value={formatDate(l.createdAt)} />
             </dl>
           </section>
-
-          {l.description && (
-            <section className="panel">
-              <h2>Açıklama</h2>
-              <div className="description">
-                {l.description.split(/\n{2,}/).map((p, i) => (
-                  <p key={i}>{p}</p>
-                ))}
-              </div>
-            </section>
-          )}
 
           {l.features.length > 0 && (
             <section className="panel">
