@@ -40,20 +40,31 @@
     },
     {
       "ilanNo": "AK-10010",
+      "fotograflar": [
+        "ak-10010-1-35dd.webp",
+        "ak-10010-2-2600.webp",
+        "ak-10010-3-9463.webp",
+        "ak-10010-4-f39e.webp",
+        "ak-10010-5-cad7.webp",
+        "ak-10010-6-1af3.webp",
+        "ak-10010-7-dda8.webp",
+        "ak-10010-8-9e58.webp",
+        "ak-10010-9-cfc6.webp"
+      ],
+      "tarih": "2026-10-30",
       "baslik": "Aşağı Olucak Mezarlık Karşısı",
       "ilce": "Nurdağı",
       "mahalle": "Olucak",
       "odaSayisi": "3+1",
       "aciklama": "1114m² Arsa içinde 170m² ev dahil",
-      "kategori": "mustakil",
+      "adaParsel": "170/8",
+      "kategori": "bag_bahce",
       "tur": "satilik",
       "paraBirimi": "TRY",
       "durum": "yayinda",
       "fiyat": 7500000,
       "brutM2": 1114,
-      "netM2": 170,
-      "fotograflar": [],
-      "tarih": "2026-10-30"
+      "netM2": 170
     },
     {
       "ilanNo": "AK-10009",
