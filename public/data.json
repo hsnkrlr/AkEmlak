@@ -1,6 +1,21 @@
 {
   "ilanlar": [
     {
+      "ilanNo": "AK-10003",
+      "baslik": "Beyoğlu Kalenin Batısı",
+      "il": "Kahramanmaraş",
+      "ilce": "Türkoğlu",
+      "mahalle": "Beyoğlu",
+      "kategori": "arsa",
+      "tur": "satilik",
+      "paraBirimi": "TRY",
+      "durum": "yayinda",
+      "fiyat": 3000000,
+      "brutM2": 1150,
+      "fotograflar": [],
+      "tarih": "2026-10-30"
+    },
+    {
       "ilanNo": "AK-10002",
       "baslik": "Esenyurt 356m² arsa",
       "ilce": "Nurdağı",
