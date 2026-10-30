@@ -1,6 +1,20 @@
 {
   "ilanlar": [
     {
+      "ilanNo": "AK-10012",
+      "baslik": "Sanayide kiralık iş yeri",
+      "ilce": "Nurdağı",
+      "mahalle": "Aslanlı",
+      "aciklama": "D Blok - Taktörcünün Karşısı",
+      "kategori": "isyeri",
+      "tur": "kiralik",
+      "paraBirimi": "TRY",
+      "durum": "yayinda",
+      "fiyat": 12000,
+      "fotograflar": [],
+      "tarih": "2026-10-30"
+    },
+    {
       "ilanNo": "AK-10011",
       "baslik": "Bademli Tokiler",
       "ilce": "Nurdağı",
