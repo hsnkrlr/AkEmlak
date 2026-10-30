@@ -277,4 +277,20 @@ describe('yönetim', () => {
     await assertFails(anonim().storage().ref(`basvurular/${UID}/abcdefghijklmnop5678.webp`).getMetadata());
     await assertFails(kayitsiz().storage().ref(`basvurular/${UID}/abcdefghijklmnop5678.webp`).getMetadata());
   });
+
+  test('ilan sahibi bilgisi: yalnızca yetkili kendi adıyla yazar ve okur', async () => {
+    const ref = (ctx) => ctx.firestore().doc('ilanSahipleri/AK-10008');
+    const veri = { ad: 'Mehmet Köse', telefon: '+905321234567', not: 'Anahtar komşuda', guncelleyen: YETKILI, guncellendi: ts() };
+    await assertSucceeds(ref(yetkili()).set(veri));
+    await assertSucceeds(ref(yetkili()).get());
+    await assertSucceeds(ref(digerYetkili()).get());
+    await assertFails(ref(yetkili()).set({ ...veri, guncelleyen: DIGER_YETKILI }));
+    await assertFails(ref(yetkili()).set({ ...veri, fazla: 1 }));
+    await assertFails(ref(yetkili()).set({ ...veri, not: 'x'.repeat(1001) }));
+    for (const ctx of [kayitsiz(), anonim(), dogrulanmamis()]) {
+      await assertFails(ref(ctx).get());
+      await assertFails(ref(ctx).set(veri));
+    }
+  });
 });
+

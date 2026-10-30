@@ -1,5 +1,8 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { CATEGORY_GROUP, CATEGORY_LABEL, type Category } from '../../types';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { CATEGORY_GROUP, CATEGORY_LABEL, GROUP_LABEL, type Category, type CategoryGroup } from '../../types';
+import { buyukHarfUygula, type BuyukHarfDurumu } from '../buyukHarf';
+import { db } from '../firebase';
 import { fotografUrl, useBasvuru } from '../basvurular/veri';
 import { basvurudanIlan, type IlanTaslak } from '../donustur';
 import { IkonGeri } from '../ikonlar';
@@ -26,6 +29,35 @@ type Form = Record<string, string> & { ozellikler: string; firsat: string };
 
 const SAYILAR = ['fiyat', 'brutM2', 'netM2', 'banyoSayisi', 'binaYasi', 'modelYili', 'km'];
 const BOS: Form = { baslik: '', kategori: 'daire', tur: 'satilik', fiyat: '', paraBirimi: 'TRY', durum: 'yayinda', ozellikler: '', firsat: '' };
+
+/** Son girilen konum bu cihazda hatırlanır; ilk seferde Gaziantep / Nurdağı */
+const KONUM_ANAHTARI = 'ak.yonetim.konum';
+function sonKonum(): { il: string; ilce: string; mahalle: string } {
+  try {
+    const k = JSON.parse(localStorage.getItem(KONUM_ANAHTARI) || 'null');
+    if (k && typeof k === 'object') return { il: String(k.il ?? ''), ilce: String(k.ilce ?? ''), mahalle: String(k.mahalle ?? '') };
+  } catch {
+    /* depolama kapalı */
+  }
+  return { il: 'Gaziantep', ilce: 'Nurdağı', mahalle: '' };
+}
+function konumuHatirla(f: Form) {
+  try {
+    localStorage.setItem(KONUM_ANAHTARI, JSON.stringify({ il: f.il ?? '', ilce: f.ilce ?? '', mahalle: f.mahalle ?? '' }));
+  } catch {
+    /* yok say */
+  }
+}
+
+/** "Nurdağı Esenyurt Satılık Arsa" */
+function baslikOnerisi(f: Form): string {
+  const mahalle = (f.mahalle ?? '').replace(/\s+(mahallesi|mah\.?)$/i, '');
+  const kat = f.kategori === 'diger' ? f.kategoriAdi ?? '' : CATEGORY_LABEL[f.kategori as Category] ?? '';
+  return [f.ilce, mahalle, f.tur === 'kiralik' ? 'Kiralık' : 'Satılık', kat.split(' / ')[0]].map((x) => (x ?? '').trim()).filter(Boolean).join(' ');
+}
+
+const GRUPLAR: CategoryGroup[] = ['konut', 'arsa', 'isyeri', 'vasita', 'diger'];
+type Sahip = { ad: string; telefon: string; not: string };
 
 function formOf(i: IlanTaslak | IlanKaydi): Form {
   const f: Form = { ...BOS };
@@ -60,9 +92,21 @@ function ilanOf(f: Form): IlanTaslak {
 }
 
 export default function Duzenleyici(p: DuzenleyiciModu) {
-  const { uid } = useYetkili();
+  const { uid, email } = useYetkili();
   const basvuru = useBasvuru(p.mod === 'basvuru' ? p.basvuruId : null);
-  const [form, setForm] = useState<Form | null>(p.mod === 'yeni' ? { ...BOS } : null);
+  const [form, setForm] = useState<Form | null>(p.mod === 'yeni' ? { ...BOS, ...sonKonum() } : null);
+  const [sahip, setSahip] = useState<Sahip>({ ad: '', telefon: '', not: '' });
+  const baslikHarf = useRef<BuyukHarfDurumu>({ iptal: new Set() });
+  const aciklamaHarf = useRef<BuyukHarfDurumu>({ iptal: new Set() });
+
+  // İlan sahibi (gizli): düzenlemede Firestore'dan oku
+  useEffect(() => {
+    if (p.mod !== 'duzenle') return;
+    getDoc(doc(db, 'ilanSahipleri', p.ilanNo)).then(
+      (d) => d.exists() && setSahip({ ad: String(d.get('ad') ?? ''), telefon: String(d.get('telefon') ?? ''), not: String(d.get('not') ?? '') }),
+      () => undefined,
+    );
+  }, [p.mod, p.mod === 'duzenle' ? p.ilanNo : '']);
   const [fotolar, setFotolar] = useState<FotoSecim[]>([]);
   const [yukHata, setYukHata] = useState('');
   const [surum, setSurum] = useState<string | undefined>(undefined);
@@ -90,6 +134,7 @@ export default function Duzenleyici(p: DuzenleyiciModu) {
   useEffect(() => {
     if (p.mod !== 'basvuru' || !basvuru || form) return;
     setForm(formOf(basvurudanIlan(basvuru)));
+    setSahip({ ad: basvuru.seller.name, telefon: basvuru.seller.phone, not: `Başvuru ${basvuru.number}` });
     setFotolar(basvuru.photos.map((yol) => ({ anahtar: yol, tur: 'basvuru', yol, onizleme: null })));
     for (const yol of basvuru.photos) {
       fotografUrl(yol).then(
@@ -131,17 +176,29 @@ export default function Duzenleyici(p: DuzenleyiciModu) {
   const kiralik = form.tur === 'kiralik';
 
   async function kaydet() {
-    if (!form!.baslik.trim()) return setDurum({ ad: 'hata', mesaj: 'Başlık zorunlu.' });
+    const f = form!.baslik.trim() ? form! : { ...form!, baslik: baslikOnerisi(form!) };
+    if (!f.baslik.trim()) return setDurum({ ad: 'hata', mesaj: 'Başlık yazın.' });
     setDurum({ ad: 'kaydediliyor' });
     try {
       const r = await ilanKaydet({
-        ilan: ilanOf(form!),
+        ilan: ilanOf(f),
         ilanNo: p.mod === 'duzenle' ? p.ilanNo : undefined,
         surum: p.mod === 'duzenle' ? surum : undefined,
         istekId,
         basvuruId: p.mod === 'basvuru' ? p.basvuruId : undefined,
         fotograflar: fotolar.map(fotoGirdisi).filter((x): x is FotoGirdi => x !== null),
       });
+      konumuHatirla(f);
+      // İlan sahibi bilgisi yalnızca Firestore'a (yetkililere açık) yazılır, sitede yayınlanmaz
+      if (sahip.ad.trim() || sahip.telefon.trim() || sahip.not.trim() || p.mod === 'duzenle') {
+        await setDoc(doc(db, 'ilanSahipleri', r.ilanNo), {
+          ad: sahip.ad.trim().slice(0, 80),
+          telefon: sahip.telefon.trim().slice(0, 20),
+          not: sahip.not.trim().slice(0, 1000),
+          guncelleyen: email,
+          guncellendi: serverTimestamp(),
+        }).catch(() => undefined);
+      }
       setDurum({ ad: 'tamam', ilanNo: r.ilanNo, baglanti: r.baglanti });
       window.scrollTo(0, 0);
     } catch (e) {
@@ -161,24 +218,35 @@ export default function Duzenleyici(p: DuzenleyiciModu) {
       </button>
       <h1 className="y-baslik">{baslik}</h1>
 
-      <Bolum baslik="Fotoğraflar">
-        <Fotograflar uid={uid} fotolar={fotolar} degistir={setFotolar} />
+      <Bolum baslik="1. İlan tipi">
+        {GRUPLAR.map((g) => (
+          <div key={g} className="y-alan">
+            <span>{GROUP_LABEL[g]}</span>
+            <div className="y-secenekler">
+              {(Object.keys(CATEGORY_LABEL) as Category[])
+                .filter((k) => CATEGORY_GROUP[k] === g)
+                .map((k) => (
+                  <button key={k} type="button" className={`y-cip ${form.kategori === k ? 'on' : ''}`} aria-pressed={form.kategori === k} onClick={() => set('kategori', k)}>
+                    {CATEGORY_LABEL[k]}
+                  </button>
+                ))}
+            </div>
+          </div>
+        ))}
+        {form.kategori === 'diger' && <Alan ad="Kategori adı" deger={form.kategoriAdi ?? ''} degis={(v) => set('kategoriAdi', v)} ipucu="Örn. Tekne" max={40} />}
+        <Secim ad="Satılık / Kiralık" secenekler={[['satilik', 'Satılık'], ['kiralik', 'Kiralık']]} deger={form.tur} degis={(v) => set('tur', v)} />
       </Bolum>
 
-      <Bolum baslik="Temel bilgiler">
-        <Alan ad="Başlık *" deger={form.baslik} degis={(v) => set('baslik', v)} max={140} />
-        <label className="y-alan">
-          <span>Kategori</span>
-          <select value={form.kategori} onChange={(e) => set('kategori', e.target.value)}>
-            {Object.entries(CATEGORY_LABEL).map(([k, ad]) => (
-              <option key={k} value={k}>
-                {ad}
-              </option>
-            ))}
-          </select>
-        </label>
-        {form.kategori === 'diger' && <Alan ad="Kategori adı" deger={form.kategoriAdi ?? ''} degis={(v) => set('kategoriAdi', v)} ipucu="Örn. Tekne" max={40} />}
-        <Secim ad="İşlem" secenekler={[['satilik', 'Satılık'], ['kiralik', 'Kiralık']]} deger={form.tur} degis={(v) => set('tur', v)} />
+      <Bolum baslik="2. Konum">
+        <Alan ad="İl" deger={form.il ?? ''} degis={(v) => set('il', v)} ipucu="Gaziantep" max={60} />
+        <p className="y-soluk y-kucuk" style={{ marginTop: -6 }}>Son girdiğiniz konum hatırlanır; gerekirse değiştirin.</p>
+        <div className="y-iki">
+          <Alan ad="İlçe" deger={form.ilce ?? ''} degis={(v) => set('ilce', v)} max={60} />
+          <Alan ad="Mahalle" deger={form.mahalle ?? ''} degis={(v) => set('mahalle', v)} max={80} />
+        </div>
+      </Bolum>
+
+      <Bolum baslik="3. Fiyat">
         <div className="y-iki">
           <Alan ad={kiralik ? 'Aylık kira' : 'Fiyat'} deger={form.fiyat} degis={(v) => set('fiyat', v.replace(/[^\d]/g, ''))} sayi ipucu="Boş: Fiyat için arayın" />
           <label className="y-alan">
@@ -192,16 +260,8 @@ export default function Duzenleyici(p: DuzenleyiciModu) {
         </div>
       </Bolum>
 
-      <Bolum baslik="Konum">
-        <Alan ad="İl" deger={form.il ?? ''} degis={(v) => set('il', v)} ipucu="Gaziantep" max={60} />
-        <div className="y-iki">
-          <Alan ad="İlçe" deger={form.ilce ?? ''} degis={(v) => set('ilce', v)} max={60} />
-          <Alan ad="Mahalle" deger={form.mahalle ?? ''} degis={(v) => set('mahalle', v)} max={80} />
-        </div>
-      </Bolum>
-
       {grup !== 'diger' && (
-        <Bolum baslik="Özellikler">
+        <Bolum baslik="4. Ayrıntılar">
           {grup === 'vasita' ? (
             <>
               <div className="y-iki">
@@ -236,7 +296,7 @@ export default function Duzenleyici(p: DuzenleyiciModu) {
         </Bolum>
       )}
 
-      <Bolum baslik="Açıklama">
+      <Bolum baslik="5. Özellikler ve açıklama">
         <Alan ad="Öne çıkan özellikler" deger={form.ozellikler} degis={(v) => set('ozellikler', v)} ipucu="Virgülle ayırın ya da aşağıdan seçin" />
         <div className="y-secenekler" style={{ marginTop: -4, marginBottom: 12 }} aria-label="Önerilen özellikler">
           {ONERILER[grup].map((o) => {
@@ -260,11 +320,51 @@ export default function Duzenleyici(p: DuzenleyiciModu) {
         </div>
         <label className="y-alan">
           <span>Açıklama</span>
-          <textarea value={form.aciklama ?? ''} onChange={(e) => set('aciklama', e.target.value)} maxLength={5000} rows={5} />
+          <textarea
+            value={form.aciklama ?? ''}
+            onChange={(e) => set('aciklama', buyukHarfUygula(form.aciklama ?? '', e.target.value, 'cumle', aciklamaHarf.current))}
+            autoCapitalize="sentences"
+            maxLength={6000}
+            rows={6}
+          />
         </label>
       </Bolum>
 
-      <Bolum baslik="Yayın">
+      <Bolum baslik="6. Fotoğraflar">
+        <Fotograflar uid={uid} fotolar={fotolar} degistir={setFotolar} />
+      </Bolum>
+
+      <Bolum baslik="7. İlan sahibi (yalnızca yöneticiler görür)">
+        <div className="y-iki">
+          <Alan ad="Ad soyad" deger={sahip.ad} degis={(v) => setSahip({ ...sahip, ad: v })} max={80} />
+          <Alan ad="Telefon" deger={sahip.telefon} degis={(v) => setSahip({ ...sahip, telefon: v })} ipucu="+90 5XX XXX XX XX" max={20} />
+        </div>
+        <label className="y-alan">
+          <span>Not</span>
+          <textarea value={sahip.not} onChange={(e) => setSahip({ ...sahip, not: e.target.value })} maxLength={1000} rows={2} placeholder="Örn. Anahtar komşuda, komisyon %2" />
+        </label>
+        <p className="y-soluk y-kucuk" style={{ margin: 0 }}>Bu bilgiler sitede yayınlanmaz.</p>
+      </Bolum>
+
+      <Bolum baslik="8. Başlık">
+        <label className="y-alan">
+          <span>İlan başlığı</span>
+          <input
+            value={form.baslik}
+            onChange={(e) => set('baslik', buyukHarfUygula(form.baslik, e.target.value, 'kelime', baslikHarf.current))}
+            placeholder={baslikOnerisi(form) || 'Örn. Nurdağı Esenyurt Satılık Arsa'}
+            autoCapitalize="words"
+            maxLength={140}
+          />
+        </label>
+        {!form.baslik.trim() && baslikOnerisi(form) && (
+          <button type="button" className="y-btn y-btn-kucuk" onClick={() => set('baslik', baslikOnerisi(form))}>
+            Öneriyi kullan: {baslikOnerisi(form)}
+          </button>
+        )}
+      </Bolum>
+
+      <Bolum baslik="9. Yayın">
         <Secim
           ad="Durum"
           secenekler={[['yayinda', 'Yayında'], ['satildi', kiralik ? 'Kiralandı' : 'Satıldı'], ['gizli', 'Gizli']]}

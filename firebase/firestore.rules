@@ -145,6 +145,19 @@ service cloud.firestore {
       }
     }
 
+    // İlan sahibinin iletişim bilgileri: yalnızca yetkililer görür (data.json'a yazılmaz, sitede yayınlanmaz)
+    match /ilanSahipleri/{ilanNo} {
+      allow read, delete: if yetkili();
+      allow create, update: if yetkili()
+        && request.resource.data.keys().hasOnly(['ad', 'telefon', 'not', 'guncelleyen', 'guncellendi'])
+        && request.resource.data.keys().hasAll(['guncelleyen', 'guncellendi'])
+        && (!('ad' in request.resource.data) || str(request.resource.data.ad, 0, 80))
+        && (!('telefon' in request.resource.data) || str(request.resource.data.telefon, 0, 20))
+        && (!('not' in request.resource.data) || str(request.resource.data.not, 0, 1000))
+        && request.resource.data.guncelleyen == request.auth.token.email
+        && request.resource.data.guncellendi == request.time;
+    }
+
     // Siteye yapılan değişikliklerin kaydı (yalnızca sunucu fonksiyonları yazar)
     match /islemler/{id} {
       allow read: if yetkili();

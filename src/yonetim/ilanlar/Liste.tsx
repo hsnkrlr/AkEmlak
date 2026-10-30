@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 import { CATEGORY_LABEL, type Category } from '../../types';
 import { SITE } from '../../config';
 import { slugify } from '../../lib/format';
@@ -138,6 +140,7 @@ function Islemler({ ilan, bitti }: { ilan: IlanKaydi; bitti: (mesaj: string) => 
   return (
     <div style={{ padding: '0 12px 12px' }}>
       {hata && <p className="y-hata">{hata}</p>}
+      <SahipBilgisi ilanNo={no} />
       <Share
         url={`${SITE.siteUrl}/detay/${ilan.baglanti || slugify(ilan.baslik)}`}
         title={ilan.baslik}
@@ -156,6 +159,26 @@ function Islemler({ ilan, bitti }: { ilan: IlanKaydi; bitti: (mesaj: string) => 
           {dugme('sil', 'Sil', 'silindi', 'y-btn-tehlike')}
         </div>
       </div>
+    </div>
+  );
+}
+
+/** İlan sahibinin gizli iletişim bilgisi (Firestore ilanSahipleri) */
+function SahipBilgisi({ ilanNo }: { ilanNo: string }) {
+  const [s, setS] = useState<{ ad: string; telefon: string; not: string } | null | undefined>(undefined);
+  useEffect(() => {
+    getDoc(doc(db, 'ilanSahipleri', ilanNo)).then(
+      (d) => setS(d.exists() ? { ad: String(d.get('ad') ?? ''), telefon: String(d.get('telefon') ?? ''), not: String(d.get('not') ?? '') } : null),
+      () => setS(null),
+    );
+  }, [ilanNo]);
+  if (s === undefined) return null;
+  if (!s || (!s.ad && !s.telefon && !s.not)) return <p className="y-soluk y-kucuk">İlan sahibi bilgisi girilmemiş (Düzenle → İlan sahibi).</p>;
+  const tel = s.telefon.replace(/\D/g, '').replace(/^0/, '90');
+  return (
+    <div className="y-kart y-bolum" style={{ margin: '0 0 10px' }}>
+      <b>İlan sahibi:</b> {s.ad || '—'} {s.telefon && <>· <a href={`tel:+${tel}`}>{s.telefon}</a> · <a href={`https://wa.me/${tel}`} target="_blank" rel="noopener noreferrer">WhatsApp</a></>}
+      {s.not && <p className="y-soluk y-kucuk" style={{ margin: '4px 0 0', whiteSpace: 'pre-line' }}>{s.not}</p>}
     </div>
   );
 }
